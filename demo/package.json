@@ -1,9 +1,9 @@
 {
-  "name": "@stardust-cms/iframe-adapter-demo",
+  "name": "stardust-demo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Standalone consumer demo for @stardust-cms/iframe-adapter: a versioned-content-engine-backed store edited through the @stardust-cms/dashboard HostShell.",
+  "description": "Standalone showcase of the Stardust ecosystem: a versioned-content-engine-backed store edited through the @stardust-cms/dashboard HostShell over @stardust-cms/iframe-adapter, with colab-* presence.",
   "scripts": {
     "demo": "concurrently -k -n site,admin -c magenta,cyan \"npm:demo:site\" \"npm:demo:admin\"",
     "demo:site": "vite --config site/vite.config.ts site",
