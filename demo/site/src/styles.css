@@ -1,10 +1,30 @@
+/**
+ * Demo site design language.
+ *
+ * Styles BOTH the new non-editable chrome (nav, hero frame, section heads,
+ * footer) and the adapter-driven editable regions selected by their stable
+ * `data-cms` / `data-cms-content` / `data-cms-container` attributes, so the
+ * host-injected content looks polished inside the layout without hardcoding
+ * any editable copy.
+ */
+
 :root {
-  --site-fg: #0f172a;
-  --site-muted: #64748b;
-  --site-bg: #ffffff;
-  --site-accent: #6366f1;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --accent: #4f46e5;
+  --accent-soft: #eef2ff;
+  --section: #f7f8fa;
+  --footer: #0b0e19;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-panel: 0 24px 60px rgba(15, 23, 42, 0.14);
+  --radius: 16px;
+  --maxw: 1120px;
+
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: var(--site-fg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -13,103 +33,450 @@
 
 body {
   margin: 0;
-  background: var(--site-bg);
+  background: #fff;
+  color: var(--ink);
 }
 
-.demo-page {
-  max-width: 860px;
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--maxw);
   margin: 0 auto;
-  padding: 48px 32px 96px;
+  padding-inline: 32px;
+}
+
+/* ── Brand mark ─────────────────────────────────────────────── */
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.brand__mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 50%, #22d3ee 100%);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+}
+
+.brand--onDark {
+  color: #fff;
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 20px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid transparent;
+  transition: transform 0.12s ease, box-shadow 0.12s ease,
+    background 0.12s ease;
+  cursor: pointer;
+}
+
+.btn--solid {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.28);
+}
+
+.btn--solid:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+
+.btn--outline {
+  background: #fff;
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+.btn--outline:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+/* ── Sticky nav ─────────────────────────────────────────────── */
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-nav__inner {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.site-nav__links {
+  margin-left: auto;
+  display: flex;
+  gap: 28px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.site-nav__links a:hover {
+  color: var(--ink);
+}
+
+.site-nav__cta {
+  padding: 9px 16px;
+  font-size: 14px;
+}
+
+/* ── Pill / tag ─────────────────────────────────────────────── */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(79, 70, 229, 0.12);
+}
+
+.tag {
+  display: inline-flex;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ── Hero ───────────────────────────────────────────────────── */
+
+.hero {
+  padding-top: 72px;
+  padding-bottom: 8px;
+}
+
+.hero__inner {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  align-items: center;
+  text-align: center;
+  gap: 22px;
 }
 
-.demo-section {
+.hero__cta {
+  display: flex;
+  gap: 12px;
+}
+
+.hero__panel {
+  margin-top: 40px;
+  height: 420px;
+  border-radius: 24px;
+  background: linear-gradient(140deg, #eef2ff 0%, #f5f3ff 40%, #ecfeff 100%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
+}
+
+/* Hero editable content: title + subtitle, keyed off stable style groups.
+   (Content nodes are wrapped in [data-style-element] divs, so positional
+   selectors on [data-cms-content] don't isolate siblings — the style group
+   is the stable, semantic hook.) */
+[data-cms="hero"] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+[data-cms="hero"] [data-cms-content][data-style-group="hero-subtitle"] {
+  max-width: 640px;
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+[data-cms="hero"] [data-cms-content][data-style-group="hero-title"] {
+  max-width: 760px;
+  font-size: 56px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+/* ── Features band ──────────────────────────────────────────── */
+
+.features {
+  margin-top: 56px;
+  padding: 80px 0 88px;
+  background: var(--section);
+  border-block: 1px solid var(--border);
+}
+
+.section-head {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 48px;
+}
+
+.section-head h2 {
+  margin: 0 0 14px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.section-head__sub [data-cms-content] {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* Features editable list → 3-card row. */
+[data-cms="features"] {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+[data-cms="features"] [data-cms-content] {
+  position: relative;
+  padding: 28px 24px 26px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Accent-soft icon chip above each card title. */
+[data-cms="features"] [data-cms-content]::before {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 18px;
+  border-radius: 11px;
+  background: var(--accent-soft)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2 2 7l10 5 10-5-10-5z'/><path d='m2 17 10 5 10-5'/><path d='m2 12 10 5 10-5'/></svg>")
+    center / 20px no-repeat;
+}
+
+/* ── Showcase (two-column) ──────────────────────────────────── */
+
+.showcase {
+  padding: 88px 0 96px;
+}
+
+.showcase__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.showcase__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.showcase__media [data-cms="showcase"] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.showcase__media img {
+  width: 100%;
+  height: 360px;
+  object-fit: cover;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
+  display: block;
+}
+
+.showcase__media [data-cms-content]:not(img) {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Split container → the left copy column: heading + paragraph in the first
+   nested target, and a check-bullet callout in the second. */
+[data-cms-container] {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+}
+
+[data-cms-container] > [data-cms-container-target] {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.demo-section__label {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--site-muted);
-  font-weight: 600;
+/* Headings (split-heading) and body copy (split-body), keyed off stable
+   style groups. The FIRST column's heading is the big section title; the
+   SECOND column's body renders as a check-bulleted callout. */
+[data-cms-container] [data-cms-content][data-style-group="split-heading"] {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
 }
 
-/* Content items rendered by ContentRenderer carry data-cms-content. */
-[data-cms="hero"] [data-cms-content]:first-child {
-  font-size: 40px;
-  line-height: 1.1;
-  font-weight: 800;
+[data-cms-container]
+  > [data-cms-container-target]:first-child
+  [data-cms-content][data-style-group="split-heading"] {
+  font-size: 38px;
   letter-spacing: -0.02em;
-  margin-bottom: 12px;
+  line-height: 1.1;
 }
 
-[data-cms="hero"] [data-cms-content] {
-  font-size: 18px;
-  color: var(--site-muted);
-  max-width: 620px;
-}
-
-[data-cms="intro"] [data-cms-content] {
+[data-cms-container] [data-cms-content][data-style-group="split-body"] {
   font-size: 17px;
   line-height: 1.6;
+  color: var(--muted);
 }
 
-[data-cms="showcase"] img {
-  width: 100%;
-  max-width: 480px;
-  border-radius: 16px;
-  display: block;
-}
-
-[data-cms="showcase"] [data-cms-content]:not(img) {
-  font-size: 14px;
-  color: var(--site-muted);
-  margin-top: 10px;
-}
-
-[data-cms="features"] {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-[data-cms="features"] [data-cms-content] {
-  padding: 12px 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+/* Second column's body = a check-bulleted callout. */
+[data-cms-container]
+  > [data-cms-container-target]:last-child
+  [data-cms-content][data-style-group="split-body"] {
+  position: relative;
+  padding-left: 34px;
+  color: var(--ink);
   font-weight: 500;
-}
-
-[data-cms-container] {
-  gap: 24px;
-  width: 100%;
-}
-
-[data-cms-container] > [data-cms-container-target] {
-  flex: 1;
-  padding: 20px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-[data-cms-container] [data-cms-content]:first-child {
-  font-weight: 700;
   font-size: 16px;
 }
 
-[data-cms-container] [data-cms-content] {
+[data-cms-container]
+  > [data-cms-container-target]:last-child
+  [data-cms-content][data-style-group="split-body"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--accent-soft)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>")
+    center / 13px no-repeat;
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+
+.site-footer {
+  background: var(--footer);
+  color: #cbd5e1;
+  padding-top: 56px;
+}
+
+.site-footer__inner {
+  display: flex;
+  justify-content: space-between;
+  gap: 48px;
+  flex-wrap: wrap;
+  padding-bottom: 44px;
+}
+
+.site-footer__brand {
+  max-width: 300px;
+}
+
+.site-footer__tagline {
+  margin: 16px 0 0;
   font-size: 14px;
-  color: var(--site-muted);
+  line-height: 1.6;
+  color: #8892a6;
+}
+
+.site-footer__cols {
+  display: flex;
+  gap: 64px;
+  flex-wrap: wrap;
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.site-footer__col h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.site-footer__col a {
+  font-size: 14px;
+  color: #8892a6;
+}
+
+.site-footer__col a:hover {
+  color: #fff;
+}
+
+.site-footer__bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 22px 32px 40px;
+  font-size: 13px;
+  color: #6b7590;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 860px) {
+  [data-cms="features"] {
+    grid-template-columns: 1fr;
+  }
+
+  .showcase__grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  .site-nav__links {
+    display: none;
+  }
+
+  [data-cms="hero"] [data-cms-content]:first-child {
+    font-size: 40px;
+  }
 }

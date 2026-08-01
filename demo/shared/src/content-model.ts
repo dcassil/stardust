@@ -77,7 +77,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
     content: {
       id: "hero-title",
       type: "text",
-      value: "Edit any website, live, from an admin panel.",
+      value: "Build and publish content without leaving the page.",
       styleGroup: "hero-title",
     },
   },
@@ -88,7 +88,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
       id: "hero-subtitle",
       type: "text",
       value:
-        "A typed iframe adapter streams geometry to the host so overlays track every target as it scrolls, resizes, and re-renders.",
+        "A headless content engine and in-iframe visual editor. Draft, preview, publish, and roll back — all in real time, right where your site lives.",
       styleGroup: "hero-subtitle",
     },
   },
@@ -99,7 +99,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
       id: "intro-body",
       type: "text",
       value:
-        "This page is a plain public site. It is wrapped once in StardustAdapterProvider and annotates its regions with EditableTarget — nothing else. The admin shell embeds it in an iframe and edits it over frame-link.",
+        "Structured, versioned, and collaborative — without a heavyweight CMS. Every region on this page is a live, editable target.",
       styleGroup: "intro-body",
     },
   },
@@ -123,7 +123,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
     content: {
       id: "showcase-caption",
       type: "text",
-      value: "An image target — edit its source from the admin side panel.",
+      value: "See teammates’ cursors and edit-locks in real time. No more overwriting each other’s work.",
       styleGroup: "showcase-caption",
     },
   },
@@ -133,7 +133,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
     content: {
       id: "feature-1",
       type: "text",
-      value: "Typed, structured-clone-safe protocol",
+      value: "Draft & live versions",
       styleGroup: "feature-item",
     },
   },
@@ -143,7 +143,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
     content: {
       id: "feature-2",
       type: "text",
-      value: "Explicit-origin frame-link handshake (never *)",
+      value: "True rollback",
       styleGroup: "feature-item",
     },
   },
@@ -153,7 +153,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
     content: {
       id: "feature-3",
       type: "text",
-      value: "Overlays that track geometry under scroll and resize",
+      value: "Live collaboration",
       styleGroup: "feature-item",
     },
   },
@@ -176,7 +176,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
     content: {
       id: "split-left-heading",
       type: "text",
-      value: "Nested container — left column",
+      value: "Edit the real page, not a form.",
       styleGroup: "split-heading",
     },
   },
@@ -187,7 +187,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
       id: "split-left-body",
       type: "text",
       value:
-        "Drop a block here from the admin palette. Child geometry streams individually so its overlay lands precisely.",
+        "Overlays map every editable region of your live site. Click, drag, and type directly on the page — changes flow through a versioned store and render instantly in the iframe.",
       styleGroup: "split-body",
     },
   },
@@ -197,7 +197,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
     content: {
       id: "split-right-heading",
       type: "text",
-      value: "Nested container — right column",
+      value: "Ship with confidence.",
       styleGroup: "split-heading",
     },
   },
@@ -208,7 +208,7 @@ export const SEED_CONTENT: readonly SeedItem[] = [
       id: "split-right-body",
       type: "text",
       value:
-        "Each child block carries its own stable id so the host can address it for move, edit, and delete.",
+        "Draft → preview → publish workflow. Append-only history with true rollback. Real-time presence and edit locks on every block.",
       styleGroup: "split-body",
     },
   },
