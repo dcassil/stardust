@@ -1,18 +1,26 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * PRESENCE E2E (flag ON) — server-less, two-tab remote cursors + edit-locks.
+ * PRESENCE E2E (flag ON) — colab-backed two-participant remote cursors +
+ * edit-locks over a real Socket.IO relay.
  *
- * Requires `VITE_PRESENCE_ENABLED=1` on the admin dev server (the mock
- * BroadcastChannel provider is only constructed when the flag is on). Two admin
- * pages on the SAME origin share one `BroadcastChannel`, so with NO server:
+ * Migrated from the old server-less BroadcastChannel mock to the generic `colab`
+ * collaboration packages. Requires:
+ *  - `VITE_PRESENCE_ENABLED=1` on the admin dev server (the `<ColabProvider>` is
+ *    only mounted when the flag is on), and
+ *  - the demo `colab` relay running on :5175 (`npm run demo:presence`).
+ * Both are wired by `playwright.config.ts`'s `webServer` entries.
+ *
+ * Because the relay fans presence out server-side (not via a same-origin
+ * BroadcastChannel), two SEPARATE browser contexts both join the shared room, so
+ * this uses two contexts (A, B). With the relay up:
  *  - moving the pointer over tab A's canvas makes a remote cursor
- *    (`[data-presence-cursor]`) appear in tab B, and
- *  - selecting a block in tab A makes an edit-lock badge
+ *    (`[data-colab-cursor]`) appear in tab B, and
+ *  - selecting a block in tab A makes an advisory edit-lock badge
  *    (`[data-presence-lock="hero"]`) appear in tab B.
  *
- * If the flag is off the presence layer never mounts; this spec detects that and
- * fails loudly rather than silently passing, so it can't rot into a no-op.
+ * If the flag is off the presence layer never mounts; this spec detects that
+ * (asserts the indicator) and fails loudly rather than silently passing.
  */
 
 async function waitConnected(page: Page): Promise<void> {
@@ -33,17 +41,19 @@ async function waitConnected(page: Page): Promise<void> {
     .toBeGreaterThan(10);
 }
 
-test.describe("presence: server-less two-tab cursors + edit-locks", () => {
+test.describe("presence: colab relay two-participant cursors + edit-locks", () => {
   test("tab B sees tab A's remote cursor and edit-lock", async ({ browser }) => {
-    // Two TABS in ONE browser context: same-origin `BroadcastChannel` is shared
-    // across tabs within a single context, so the mock (server-less) presence
-    // adapter fans out between them. Separate contexts are storage-partitioned
-    // and would NOT share the channel — hence one context, two pages.
-    const ctx = await browser.newContext({
+    // Two SEPARATE contexts: the colab relay fans presence out server-side, so
+    // storage-partitioned contexts still converge in the shared room (unlike the
+    // old BroadcastChannel mock, which required one shared context).
+    const ctxA = await browser.newContext({
       viewport: { width: 1280, height: 900 },
     });
-    const tabA = await ctx.newPage();
-    const tabB = await ctx.newPage();
+    const ctxB = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+    });
+    const tabA = await ctxA.newPage();
+    const tabB = await ctxB.newPage();
 
     try {
       await tabA.goto("/");
@@ -59,8 +69,13 @@ test.describe("presence: server-less two-tab cursors + edit-locks", () => {
         timeout: 10_000,
       });
 
-      // Tab A: move the pointer across the hero overlay (canvas space) so a
-      // throttled pointer message fans out to tab B.
+      // Both tabs should observe one OTHER participant once joined to the room.
+      await expect(tabB.getByTestId("presence-others")).toHaveText("1", {
+        timeout: 15_000,
+      });
+
+      // Tab A: move the pointer across the hero overlay so the colab cursor
+      // sampler publishes normalized points to the relay → tab B.
       const heroA = tabA.locator('[data-target-id="hero"]');
       const box = await heroA.boundingBox();
       expect(box).not.toBeNull();
@@ -70,25 +85,23 @@ test.describe("presence: server-less two-tab cursors + edit-locks", () => {
         await tabA.mouse.move(box.x + box.width - 10, box.y + box.height - 10);
       }
 
-      // Tab B: a remote cursor from tab A appears (the cursor marker itself is
-      // a tiny dot + label; assert it is present + labeled rather than relying
-      // on a non-zero hit-box, since the layer is `pointer-events: none`).
-      const remoteCursor = tabB.locator("[data-presence-cursor]").first();
+      // Tab B: a remote cursor from tab A appears (a tiny glyph + name pill under
+      // `[data-colab-cursor]`); the layer is `pointer-events: none`, so assert
+      // attachment rather than a hit-box.
+      const remoteCursor = tabB.locator("[data-colab-cursor]").first();
       await expect(remoteCursor).toBeAttached({ timeout: 10_000 });
-      await expect(
-        tabB.locator("[data-presence-cursor-label]").first(),
-      ).toBeAttached({ timeout: 10_000 });
 
       // Tab A: select the hero item → publishes an advisory edit-lock on "hero".
       await tabA.locator(".ov-item").first().click();
 
-      // Tab B: the edit-lock badge for the "hero" target appears, anchored to
-      // the hero target box, reading "{name} is editing".
+      // Tab B: the edit-lock badge for "hero" appears, anchored to the hero box,
+      // reading "{name} is editing".
       const lock = tabB.locator('[data-presence-lock="hero"]').first();
       await expect(lock).toBeVisible({ timeout: 10_000 });
       await expect(lock).toContainText("is editing");
     } finally {
-      await ctx.close();
+      await ctxA.close();
+      await ctxB.close();
     }
   });
 });
