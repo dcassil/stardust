@@ -1,0 +1,386 @@
+:root {
+  /* Small demo token set (SIFR-T-0010 NFR-004). */
+  --admin-bg: #0f172a;
+  --admin-panel-bg: #1e293b;
+  --admin-panel-fg: #e2e8f0;
+  --admin-muted: #94a3b8;
+  --admin-border: #334155;
+  --admin-accent: #6366f1;
+  --admin-accent-soft: rgba(99, 102, 241, 0.18);
+  --admin-selected: #ec4899;
+  --admin-ok: #22c55e;
+  --admin-warn: #f59e0b;
+  --admin-err: #ef4444;
+  --admin-radius: 8px;
+  --admin-gap: 16px;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--admin-bg);
+  color: var(--admin-panel-fg);
+}
+
+.admin-root {
+  min-height: 100vh;
+}
+
+/* --- Status strip -------------------------------------------------------- */
+.admin-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--admin-panel-bg);
+  border-bottom: 1px solid var(--admin-border);
+  font-size: 13px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.admin-status__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--admin-muted);
+  flex: 0 0 auto;
+}
+.admin-status__dot--connecting { background: var(--admin-warn); animation: pulse 1s infinite; }
+.admin-status__dot--connected { background: var(--admin-ok); }
+.admin-status__dot--error { background: var(--admin-err); }
+.admin-status__dot--disconnected { background: var(--admin-muted); }
+
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.admin-status__label { font-weight: 600; }
+.admin-status__spacer { flex: 1; }
+.admin-status__meta { color: var(--admin-muted); font-variant-numeric: tabular-nums; }
+
+/* --- Layout -------------------------------------------------------------- */
+.admin-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  align-items: start;
+}
+
+.admin-main {
+  min-width: 0;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 41px;
+  height: calc(100vh - 41px);
+  overflow-y: auto;
+  border-left: 1px solid var(--admin-border);
+  background: var(--admin-panel-bg);
+  padding: var(--admin-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap);
+}
+
+/* --- Canvas -------------------------------------------------------------- */
+.admin-canvas-scroll {
+  padding: 32px;
+  overflow: auto;
+}
+
+.admin-canvas {
+  position: relative;
+  /* Responsive on-screen width: fills the column but never upscales past the
+     design width. `useStardustHost` reads this width to derive `scale`. */
+  width: 100%;
+  max-width: 1024px; /* == DESIGN_WIDTH */
+  overflow: hidden;
+  background: #fff;
+  border-radius: var(--admin-radius);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.admin-canvas__iframe {
+  /* Absolute so the untransformed (design-width) layout box does not stretch
+     the responsive canvas; the scale transform shrinks it to fit. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  border: 0;
+}
+
+.admin-overlay-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Overlay children re-enable pointer events (SIFR-T-0010). */
+.admin-overlay-layer > * {
+  pointer-events: auto;
+}
+
+/* --- Styled overlay primitives (SIFR-T-0010) ----------------------------- */
+.ov-group {
+  pointer-events: none;
+}
+.ov-group > * {
+  pointer-events: auto;
+}
+
+/* TargetAreaOverlay: a subtle drop area, highlighted on hover / drag-over. */
+.ov-target {
+  border: 1.5px dashed rgba(99, 102, 241, 0.45);
+  border-radius: 6px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.ov-target:hover {
+  background: var(--admin-accent-soft);
+  border-color: var(--admin-accent);
+}
+.ov-target--container {
+  border-style: solid;
+  border-color: rgba(236, 72, 153, 0.4);
+}
+.ov-target--selected {
+  outline: 2px solid var(--admin-accent);
+  outline-offset: 1px;
+}
+
+/* --- Drop-zone / insertion indicators (iframe-adapter 0.1.1) --------------
+   The 0.1.1 `TargetAreaOverlay` renders a stable data-attr contract that the
+   demo owns the look of (primitives are unstyled). Ported from the original
+   builder App.css (`.target-drag` tint + `.ui.dragging` 8px insertion bar).
+
+   - `[data-target-id][data-dragover]` — whole-area tint while a block is
+     dragged over the target (original: rgba(0,0,0,0.196); harmonized here with
+     the indigo `.ov-target` dashed style).
+   - `[data-drop-area]` — the lib-sized min-hit-area layer; left untouched so it
+     doesn't visually break the target box (transparent, no border/bg).
+   - `[data-drop-zone]` (top/bottom/empty, each `data-drop-index`) — faint base
+     state (opacity .2), matching the original idle `.target-drag .ui`.
+   - `[data-drop-zone][data-drop-active]` — the ACTIVE insertion bar: an 8px
+     accent bar centered on the boundary (margin -4px), opacity 1. The lib sets
+     each zone's `height`/`top` inline for hit-testing, so the visible 8px bar
+     is drawn with a `::after` pseudo-element rather than overriding the inline
+     box; `empty` fills its area instead of a bar. */
+[data-target-id][data-dragover] {
+  background: var(--admin-accent-soft);
+  border-color: var(--admin-accent);
+}
+
+[data-drop-area] {
+  /* Sized by the library; keep it visually inert. */
+  background: transparent;
+  border: 0;
+}
+
+[data-drop-zone] {
+  opacity: 0.2;
+  transition: opacity 0.1s ease;
+}
+
+/* Active insertion bar for boundary zones (top/bottom). */
+[data-drop-zone][data-drop-active] {
+  opacity: 1;
+}
+[data-drop-zone="top"][data-drop-active]::after,
+[data-drop-zone="bottom"][data-drop-active]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: var(--admin-accent);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+[data-drop-zone="top"][data-drop-active]::after {
+  top: 0;
+  margin-top: -4px;
+}
+[data-drop-zone="bottom"][data-drop-active]::after {
+  bottom: 0;
+  margin-bottom: -4px;
+}
+
+/* Empty target: the single full-area zone fills instead of drawing a bar. */
+[data-drop-zone="empty"][data-drop-active] {
+  background: var(--admin-accent-soft);
+  outline: 2px solid var(--admin-accent);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+/* Item hit-box that the library renders inside the target (drag source). */
+.ov-item-hit {
+  cursor: grab;
+}
+
+/* Selection chrome per content item (layered above the hit box). */
+.ov-item {
+  border-radius: 4px;
+  cursor: pointer;
+  transition: box-shadow 0.12s ease;
+}
+.ov-item:hover {
+  box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.6);
+}
+.ov-item--selected {
+  box-shadow: inset 0 0 0 2px var(--admin-selected);
+  background: rgba(236, 72, 153, 0.08);
+}
+
+.ov-delete {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--admin-err);
+  color: #fff;
+  font-size: 15px;
+  line-height: 22px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 2;
+}
+.ov-group:hover .ov-delete {
+  opacity: 0.92;
+}
+.ov-delete:hover {
+  opacity: 1;
+}
+
+/* --- Sidebar panels ------------------------------------------------------ */
+.panel {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  padding: 14px;
+}
+.panel__title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-muted);
+}
+.panel__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+.panel__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.panel__meta dt {
+  color: var(--admin-muted);
+}
+.panel__meta dd {
+  margin: 0;
+  font-family: ui-monospace, monospace;
+  word-break: break-all;
+}
+.panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+.panel__field textarea,
+.panel__field input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  background: #0b1220;
+  color: var(--admin-panel-fg);
+  font: inherit;
+  resize: vertical;
+}
+.panel__field textarea:focus,
+.panel__field input:focus {
+  outline: 2px solid var(--admin-accent);
+  border-color: transparent;
+}
+
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.palette__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: #0b1220;
+  cursor: grab;
+  font-size: 13px;
+  user-select: none;
+}
+.palette__item:hover {
+  border-color: var(--admin-accent);
+}
+.palette__type {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--admin-accent);
+  border: 1px solid var(--admin-accent);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* --- Versioning controls ------------------------------------------------- */
+.version-controls {
+  background: var(--admin-panel-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.version-controls__state {
+  margin: 0;
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+.version-controls__row {
+  display: flex;
+  gap: 8px;
+}
+.version-controls button {
+  flex: 1 1 auto;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--admin-panel-fg);
+  background: var(--admin-accent-soft);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.version-controls button:hover:not(:disabled) {
+  border-color: var(--admin-accent);
+}
+.version-controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

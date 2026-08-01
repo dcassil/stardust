@@ -1,0 +1,12 @@
+{
+  "name": "@demo/admin",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Stardust admin host shell: embeds and edits the demo site over frame-link.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  }
+}

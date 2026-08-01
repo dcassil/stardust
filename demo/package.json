@@ -1,0 +1,51 @@
+{
+  "name": "@stardust-cms/iframe-adapter-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Standalone consumer demo for @stardust-cms/iframe-adapter: a versioned-content-engine-backed store edited through the @stardust-cms/dashboard HostShell.",
+  "scripts": {
+    "demo": "concurrently -k -n site,admin -c magenta,cyan \"npm:demo:site\" \"npm:demo:admin\"",
+    "demo:site": "vite --config site/vite.config.ts site",
+    "demo:admin": "vite --config admin/vite.config.ts admin",
+    "test": "vitest run -c vitest.config.ts",
+    "typecheck": "tsc -p site/tsconfig.json && tsc -p admin/tsconfig.json && tsc -p shared/tsconfig.json",
+    "build": "vite build --config site/vite.config.ts site && vite build --config admin/vite.config.ts admin",
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "depcruise": "depcruise site admin shared --config .dependency-cruiser.cjs"
+  },
+  "dependencies": {
+    "@stardust-cms/dashboard": "^0.1.3",
+    "@stardust-cms/iframe-adapter": "^0.1.4",
+    "frame-link": "^4.0.1",
+    "frame-link-react": "^4.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "versioned-content-engine": "^0.1.2"
+  },
+  "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.48.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20.19.43",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "dependency-cruiser": "^16.10.4",
+    "eslint": "^9.39.5",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-boundaries": "^7.1.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.65.0",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.0"
+  }
+}
