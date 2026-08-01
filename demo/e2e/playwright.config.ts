@@ -9,6 +9,12 @@ import { defineConfig, devices } from "@playwright/test";
  * localhost origins 5173 (admin) / 5174 (site), relative to the demo root.
  * `reuseExistingServer` lets a manually-started pair be reused (needed when the
  * sandbox blocks auto-spawn).
+ *
+ * PRESENCE (colab): a third `webServer` entry spawns the demo `colab` relay
+ * (`npm run demo:presence`, port 5175), and the admin server is started with
+ * `VITE_PRESENCE_ENABLED=1` so the presence e2e has a running relay + the
+ * presence layer mounted. The flag being on is a no-op for the other specs (the
+ * presence layer is `pointer-events: none`).
  */
 export default defineConfig({
   testDir: ".",
@@ -32,11 +38,19 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
+      command: "npx tsx presence-server/index.ts",
+      url: "http://127.0.0.1:5175/socket.io/?EIO=4&transport=polling",
+      cwd: demoRoot(),
+      reuseExistingServer: true,
+      timeout: 60_000,
+    },
+    {
       command: "npx vite --config admin/vite.config.ts admin",
       url: "http://localhost:5173",
       cwd: demoRoot(),
       reuseExistingServer: true,
       timeout: 60_000,
+      env: { VITE_PRESENCE_ENABLED: "1" },
     },
   ],
 });

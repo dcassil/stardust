@@ -16,14 +16,8 @@ export default defineConfig({
     alias: demoAliases,
     dedupe: demoDedupe,
   },
-  build: {
-    rollupOptions: {
-      // `socket.io-client` is a lazy `await import()` inside the library's
-      // optional SocketIoPresenceProvider. The demo uses the mock presence
-      // provider and never connects a socket, so the dependency is absent by
-      // design. Externalizing keeps that dynamic import optional instead of
-      // forcing socket.io-client into the demo's dependencies just to build.
-      external: ["socket.io-client"],
-    },
-  },
+  // `socket.io-client` is now a REAL dependency: `colab-ui`'s default Socket.IO
+  // transport lazily `await import()`s it inside `connect()` to reach the demo
+  // `colab` relay. It must therefore be bundled (not externalized) so the
+  // presence build/runtime can load it.
 });

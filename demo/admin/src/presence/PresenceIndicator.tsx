@@ -1,33 +1,31 @@
 /**
  * `PresenceIndicator` — small sidebar badge shown only when presence is enabled.
  *
- * Reflects how many OTHER tabs are currently present (via
- * `usePresenceParticipants`, which lists remote participants — self excluded)
- * and reminds the user that presence is server-less: open a second tab on the
- * same origin to see cursors + locks. Rendered ONLY on the flag-on path.
+ * Reflects how many OTHER participants are currently present (via the `colab`
+ * `usePresence` hook, which returns the REMOTE roster — self excluded) and
+ * reminds the user to open a second tab to see cursors + locks. Rendered ONLY on
+ * the flag-on path, from inside `<ColabProvider>`.
  */
 
 import type { ReactNode } from "react";
-import {
-  usePresenceParticipants,
-  type MockPresenceProvider,
-} from "@stardust-cms/iframe-adapter/presence";
+import { usePresence } from "colab-ui/react";
 
 export interface PresenceIndicatorProps {
-  provider: MockPresenceProvider;
+  /** The local participant id, excluded from the "others" count. */
+  selfId: string;
 }
 
-export function PresenceIndicator({
-  provider,
-}: PresenceIndicatorProps): ReactNode {
-  const participants = usePresenceParticipants(provider);
-  const others = participants.length;
+export function PresenceIndicator({ selfId }: PresenceIndicatorProps): ReactNode {
+  const participants = usePresence();
+  // colab-server's ROSTER includes the local participant, so exclude self here
+  // (the "others here" count is remote-only).
+  const others = participants.filter((p) => p.id !== selfId).length;
 
   return (
     <section className="panel" data-testid="presence-indicator">
       <h2 className="panel__title">Presence ON</h2>
       <p className="panel__hint">
-        Open a 2nd tab to see cursors/locks (no server — BroadcastChannel).
+        Open a 2nd tab to see remote cursors/locks (colab relay).
       </p>
       <dl className="panel__meta">
         <dt>others here</dt>

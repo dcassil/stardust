@@ -39,6 +39,14 @@ module.exports = {
       from: { path: "^shared/" },
       to: { path: "^(site|admin)/" },
     },
+    {
+      name: "presence-server-standalone",
+      severity: "error",
+      comment:
+        "the colab relay is a standalone Node server: it must not import demo apps or shared.",
+      from: { path: "^presence-server/" },
+      to: { path: "^(site|admin|shared)/" },
+    },
   ],
   options: {
     doNotFollow: { path: "node_modules" },

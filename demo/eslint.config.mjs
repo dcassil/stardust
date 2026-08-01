@@ -64,6 +64,7 @@ const BOUNDARY_ELEMENTS = [
   { type: "site", pattern: "site/**", mode: "file" },
   { type: "admin", pattern: "admin/**", mode: "file" },
   { type: "e2e", pattern: "e2e/**", mode: "file" },
+  { type: "presence-server", pattern: "presence-server/**", mode: "file" },
 ];
 
 const BOUNDARY_POLICIES = [
@@ -84,6 +85,12 @@ const BOUNDARY_POLICIES = [
     allow: {
       to: { element: { types: { anyOf: ["e2e", "shared", "site", "admin"] } } },
     },
+  },
+  {
+    // The colab relay is a standalone Node server: it imports only published
+    // packages (`colab-server`) and its own files — never a demo app or shared.
+    from: { element: { type: "presence-server" } },
+    allow: { to: { element: { type: "presence-server" } } },
   },
 ];
 
@@ -162,6 +169,10 @@ export default tseslint.config(
   projectBlock(["site/src/**/*.{ts,tsx}"], "./site/tsconfig.json"),
   projectBlock(["admin/src/**/*.{ts,tsx}"], "./admin/tsconfig.json"),
   projectBlock(["shared/src/**/*.{ts,tsx}"], "./shared/tsconfig.json"),
+  projectBlock(
+    ["presence-server/**/*.ts"],
+    "./presence-server/tsconfig.json",
+  ),
   {
     files: [
       "**/*.test.ts",
