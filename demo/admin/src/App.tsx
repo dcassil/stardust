@@ -54,7 +54,6 @@ import {
   makeLocalIdentity,
 } from "./presence/config";
 import { usePublishEditLock } from "./presence/usePresenceSession";
-import { createRelayTransport } from "./presence/relayTransport";
 import { PresenceOverlays } from "./presence/PresenceOverlays";
 import { PresenceIndicator } from "./presence/PresenceIndicator";
 
@@ -69,21 +68,6 @@ export function App(): ReactNode {
   // Mint the per-tab local identity exactly once (never at module scope), so two
   // tabs get distinct ids/names/colors in the shared room.
   const identity = useMemo(() => makeLocalIdentity(), []);
-
-  // The relay-compatible, connect-buffering transport (built once). Bridges
-  // colab-ui's message model to the colab-server wire protocol; see
-  // `relayTransport.ts`.
-  const transport = useMemo(
-    () =>
-      PRESENCE_ENABLED
-        ? createRelayTransport({
-            url: PRESENCE_SERVER_URL,
-            room: PRESENCE_ROOM,
-            identity,
-          })
-        : null,
-    [identity],
-  );
 
   const renderOverlayChrome = (parts: OverlayChromeParts): ReactNode => (
     <>
@@ -127,14 +111,18 @@ export function App(): ReactNode {
 
   // Gate presence entirely on the flag: when off, no `<ColabProvider>` mounts, no
   // socket connects, and no colab code path runs.
-  if (!PRESENCE_ENABLED || !transport) return shell;
+  if (!PRESENCE_ENABLED) return shell;
 
+  // `<ColabProvider>` builds its own default Socket.IO transport from
+  // `serverUrl`/`room`/`identity` (colab-ui@0.1.1's `createSocketIoTransport`):
+  // it connects with the relay's `{ roomId, identity }` handshake, maps colab
+  // envelopes onto the relay's discrete events, and buffers pre-connect sends —
+  // so no custom transport bridge is needed anymore.
   return (
     <ColabProvider
       serverUrl={PRESENCE_SERVER_URL}
       room={PRESENCE_ROOM}
       identity={identity}
-      transport={transport}
       interactions={PRESENCE_INTERACTIONS}
     >
       {shell}
