@@ -84,32 +84,73 @@ export function VersionControls(): ReactNode {
   }, [vce, viewing, live, reinject]);
 
   return (
-    <section className="version-controls" data-testid="version-controls">
-      <h2 className="panel__title">Versioning</h2>
+    <section className="panel version-controls" data-testid="version-controls">
+      <div className="panel__head">
+        <h2 className="panel__title">Versioning</h2>
+        <span className={`vc-pill ${editing ? "vc-pill--draft" : "vc-pill--live"}`}>
+          {editing ? "Draft" : "Preview"}
+        </span>
+      </div>
+      {/* `version-state` carries the canonical status text the e2e suite asserts
+          on ("Editing draft" / "Viewing version N" / "live vN"), presented as
+          clean product copy. */}
       <p className="version-controls__state" data-testid="version-state">
         {editing ? "Editing draft" : `Viewing version ${String(viewing)}`}
         {" · "}live v{live}
       </p>
-      <div className="version-controls__row">
-        <button type="button" data-testid="publish" onClick={onPublish}>
-          Publish draft
-        </button>
-      </div>
-      <div className="version-controls__row">
-        <button type="button" data-testid="view-live" onClick={onViewLive} disabled={!editing}>
+
+      <button
+        type="button"
+        className="btn btn--primary btn--block"
+        data-testid="publish"
+        onClick={onPublish}
+      >
+        Publish draft
+      </button>
+
+      <div className="btn-group">
+        <button
+          type="button"
+          className="btn"
+          data-testid="view-live"
+          onClick={onViewLive}
+          disabled={!editing}
+        >
           View live
         </button>
-        <button type="button" data-testid="edit-draft" onClick={onEditDraft} disabled={editing}>
+        <button
+          type="button"
+          className="btn"
+          data-testid="edit-draft"
+          onClick={onEditDraft}
+          disabled={editing}
+        >
           Edit draft
         </button>
       </div>
-      <div className="version-controls__row">
-        <button type="button" data-testid="version-prev" onClick={onPrev}>
-          ◀ Prev
-        </button>
-        <button type="button" data-testid="version-next" onClick={onNext}>
-          Next ▶
-        </button>
+
+      <div className="vc-nav">
+        <span className="vc-nav__label">Browse history</span>
+        <span className="vc-nav__buttons">
+          <button
+            type="button"
+            className="btn btn--icon"
+            data-testid="version-prev"
+            onClick={onPrev}
+            aria-label="Previous version"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className="btn btn--icon"
+            data-testid="version-next"
+            onClick={onNext}
+            aria-label="Next version"
+          >
+            ›
+          </button>
+        </span>
       </div>
     </section>
   );

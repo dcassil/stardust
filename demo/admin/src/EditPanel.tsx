@@ -42,8 +42,15 @@ export function EditPanel({
   if (!selected) {
     return (
       <section className="panel">
-        <h2 className="panel__title">Content</h2>
-        <p className="panel__hint">Click a block in the preview to edit it.</p>
+        <div className="panel__head">
+          <h2 className="panel__title">Edit</h2>
+        </div>
+        <div className="panel__empty">
+          <span className="panel__empty-icon" aria-hidden="true">✦</span>
+          <p className="panel__hint">
+            Select a block in the preview to edit its content here.
+          </p>
+        </div>
       </section>
     );
   }
@@ -64,15 +71,10 @@ export function EditPanel({
 
   return (
     <section className="panel" data-selected-id={content.id}>
-      <h2 className="panel__title">Content</h2>
-      <dl className="panel__meta">
-        <dt>id</dt>
-        <dd>{content.id}</dd>
-        <dt>type</dt>
-        <dd>{content.type}</dd>
-        <dt>target</dt>
-        <dd>{selected.targetId}</dd>
-      </dl>
+      <div className="panel__head">
+        <h2 className="panel__title">Edit</h2>
+        <span className="panel__chip">{blockType?.label ?? content.type}</span>
+      </div>
       {blockType?.renderField ? (
         blockType.renderField(content, onEdit)
       ) : (
@@ -88,6 +90,12 @@ export function EditPanel({
           />
         </label>
       )}
+      <dl className="panel__meta panel__meta--footer">
+        <dt>target</dt>
+        <dd>{selected.targetId}</dd>
+        <dt>id</dt>
+        <dd>{content.id}</dd>
+      </dl>
     </section>
   );
 }

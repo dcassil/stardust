@@ -23,14 +23,26 @@ export function PresenceIndicator({ selfId }: PresenceIndicatorProps): ReactNode
 
   return (
     <section className="panel" data-testid="presence-indicator">
-      <h2 className="panel__title">Presence ON</h2>
+      <div className="panel__head">
+        <h2 className="panel__title">Presence</h2>
+        <span className="presence-badge">
+          <span className="presence-badge__dot" aria-hidden="true" />
+          Live
+        </span>
+      </div>
+      <div className="presence-status">
+        <span className="presence-status__count" data-testid="presence-others">
+          {others}
+        </span>
+        <span className="presence-status__text">
+          {others === 0
+            ? "No one else editing right now"
+            : `${others} other${others === 1 ? "" : "s"} editing with you`}
+        </span>
+      </div>
       <p className="panel__hint">
-        Open a 2nd tab to see remote cursors/locks (colab relay).
+        Open a second tab to see live cursors and edit locks.
       </p>
-      <dl className="panel__meta">
-        <dt>others here</dt>
-        <dd data-testid="presence-others">{others}</dd>
-      </dl>
     </section>
   );
 }

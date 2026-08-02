@@ -74,13 +74,11 @@ function StyleControls({
       data-testid="style-panel"
       data-style-group={styleGroup}
     >
-      <h2 className="panel__title">Style</h2>
-      <dl className="panel__meta">
-        <dt>group</dt>
-        <dd>{styleGroup}</dd>
-        <dt>type</dt>
-        <dd>{type}</dd>
-      </dl>
+      <div className="panel__head">
+        <h2 className="panel__title">Style</h2>
+        <span className="panel__chip">{styleGroup}</span>
+      </div>
+      <p className="panel__hint">Applies to every {styleGroup} block on the page.</p>
 
       {isAllowed(type, "color") && (
         <label className="panel__field">
@@ -127,8 +125,12 @@ export function StylePanel({
   if (!selected) {
     return (
       <section className="panel" data-testid="style-panel-empty">
-        <h2 className="panel__title">Style</h2>
-        <p className="panel__hint">Select a block to style its group.</p>
+        <div className="panel__head">
+          <h2 className="panel__title">Style</h2>
+        </div>
+        <p className="panel__hint">
+          Select a block to adjust its color and type across the page.
+        </p>
       </section>
     );
   }
