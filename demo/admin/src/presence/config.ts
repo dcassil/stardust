@@ -48,17 +48,97 @@ const COLORS = [
   "#008080",
 ];
 
-/**
- * Build a fresh, per-mount local participant {@link Identity}. Called once inside
- * a `useMemo` in `App`, so the randomness runs per tab/mount (never at module
- * scope) — two tabs get distinct ids/names/colors.
+/** sessionStorage keys — PER-TAB (not localStorage), so two tabs of the same
+ * origin can hold DISTINCT identities/names. Persists across reload of that tab.
  */
-export function makeLocalIdentity(): Identity {
+const IDENTITY_STORAGE_KEY = "stardust-presence-identity";
+const NAME_STORAGE_KEY = "stardust-presence-name";
+
+interface IdentityBase {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/**
+ * Build the local participant {@link Identity} for THIS tab. The id + color are
+ * minted once per tab and PERSISTED in `sessionStorage` (so a reload keeps the
+ * same participant, but a second tab is a distinct participant). The display name
+ * is the user-chosen name if one is set (see {@link readStoredName}), else a
+ * distinct random default — so two tabs never share a name by accident.
+ *
+ * Called inside a `useMemo` in `App` keyed by the committed name, so a name
+ * change re-mints the identity object (same id/color, new name). Pass the
+ * committed name explicitly (from React state) so the memo has a real dependency;
+ * falls back to the stored name, then a random per-tab default.
+ */
+export function makeLocalIdentity(preferredName?: string | null): Identity {
+  const base = readStoredBase();
+  const trimmedPreferred = preferredName?.trim();
+  const preferred =
+    trimmedPreferred !== undefined && trimmedPreferred !== ""
+      ? trimmedPreferred
+      : null;
+  const name = preferred ?? readStoredName() ?? base.name;
+  return { id: base.id, name, color: base.color };
+}
+
+/**
+ * The stable per-tab identity id/color/default-name, persisted in
+ * `sessionStorage`. Minted once per tab and reused across reloads of that tab.
+ */
+function readStoredBase(): IdentityBase {
+  try {
+    const raw = sessionStorage.getItem(IDENTITY_STORAGE_KEY);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw) as Partial<IdentityBase>;
+      if (
+        typeof parsed.id === "string" &&
+        typeof parsed.name === "string" &&
+        typeof parsed.color === "string"
+      ) {
+        return { id: parsed.id, name: parsed.name, color: parsed.color };
+      }
+    }
+  } catch {
+    // Storage unavailable / malformed — fall through to a fresh mint.
+  }
   const n = Math.floor(Math.random() * NAMES.length);
   const suffix = Math.random().toString(36).slice(2, 6);
-  return {
+  const base: IdentityBase = {
     id: `local-${suffix}`,
     name: NAMES[n] ?? "Editor",
     color: COLORS[n] ?? "#666",
   };
+  try {
+    sessionStorage.setItem(IDENTITY_STORAGE_KEY, JSON.stringify(base));
+  } catch {
+    // Non-fatal: identity just won't survive a reload in this tab.
+  }
+  return base;
+}
+
+/** Read the user-chosen display name for THIS tab, or null if unset. */
+export function readStoredName(): string | null {
+  try {
+    const raw = sessionStorage.getItem(NAME_STORAGE_KEY);
+    const trimmed = raw?.trim();
+    return trimmed !== undefined && trimmed !== "" ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the user-chosen display name for THIS tab (per-tab, survives reload). */
+export function writeStoredName(name: string): void {
+  try {
+    const trimmed = name.trim();
+    if (trimmed) {
+      sessionStorage.setItem(NAME_STORAGE_KEY, trimmed);
+    } else {
+      sessionStorage.removeItem(NAME_STORAGE_KEY);
+    }
+  } catch {
+    // Non-fatal.
+  }
 }

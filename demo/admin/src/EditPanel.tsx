@@ -22,12 +22,22 @@ export interface EditPanelProps {
   blockTypes: BlockTypeRegistry;
   selectedTargetId: string | null;
   selectedContentId: string | null;
+  /**
+   * Cooperative edit-lock gate: when a REMOTE participant holds the selected
+   * target, the field editor becomes read-only and shows a lock banner. Only set
+   * true when presence is enabled and someone else holds the selection.
+   */
+  lockedByRemote?: boolean;
+  /** Display name of the remote lock holder, for the banner copy. */
+  lockHolderName?: string | null;
 }
 
 export function EditPanel({
   blockTypes,
   selectedTargetId,
   selectedContentId,
+  lockedByRemote = false,
+  lockHolderName = null,
 }: EditPanelProps): ReactNode {
   const store = useContentStore();
   const { snapshot } = store;
@@ -59,6 +69,9 @@ export function EditPanel({
   const blockType = findBlockType(blockTypes, content.type);
 
   const onEdit = (patch: BlockFieldPatch): void => {
+    // Cooperative gate: never mutate a target a remote participant is editing,
+    // even if some field control slipped past the disabled fieldset.
+    if (lockedByRemote) return;
     store.apply({
       kind: "edit",
       targetId: selected.targetId,
@@ -75,21 +88,31 @@ export function EditPanel({
         <h2 className="panel__title">Edit</h2>
         <span className="panel__chip">{blockType?.label ?? content.type}</span>
       </div>
-      {blockType?.renderField ? (
-        blockType.renderField(content, onEdit)
-      ) : (
-        <label className="panel__field">
-          <span>Value</span>
-          <textarea
-            rows={4}
-            data-testid="panel-default-field"
-            value={content.value ?? ""}
-            onChange={(e) => {
-              onEdit({ value: e.target.value });
-            }}
-          />
-        </label>
+      {lockedByRemote && (
+        <p className="panel__lock" role="status" data-testid="edit-lock-banner">
+          🔒 {lockHolderName ?? "Someone"} is editing — read-only
+        </p>
       )}
+      {/* A disabled fieldset natively disables every descendant form control,
+          including the block type's own `renderField` inputs, so a remotely
+          locked item can't be edited. */}
+      <fieldset className="panel__fieldset" disabled={lockedByRemote}>
+        {blockType?.renderField ? (
+          blockType.renderField(content, onEdit)
+        ) : (
+          <label className="panel__field">
+            <span>Value</span>
+            <textarea
+              rows={4}
+              data-testid="panel-default-field"
+              value={content.value ?? ""}
+              onChange={(e) => {
+                onEdit({ value: e.target.value });
+              }}
+            />
+          </label>
+        )}
+      </fieldset>
       <dl className="panel__meta panel__meta--footer">
         <dt>target</dt>
         <dd>{selected.targetId}</dd>
