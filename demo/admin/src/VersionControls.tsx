@@ -30,7 +30,7 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { useContentStore } from "@stardust-cms/dashboard";
 import type { VceContentStoreAdapter } from "@demo/shared/store";
-import { useEditable } from "./App";
+import { useEditable } from "./editableContext";
 
 /** A target id guaranteed to exist in the seed — used to fire a re-inject `select`. */
 const REINJECT_TARGET = "hero";

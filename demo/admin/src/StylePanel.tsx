@@ -33,6 +33,13 @@ import { useSendStyles } from "./useSendStyles";
 export interface StylePanelProps {
   selectedTargetId: string | null;
   selectedContentId: string | null;
+  /**
+   * Cooperative edit-lock gate: when a REMOTE participant holds the selected
+   * target, the style controls become read-only and show a lock banner.
+   */
+  lockedByRemote?: boolean;
+  /** Display name of the remote lock holder, for the banner copy. */
+  lockHolderName?: string | null;
 }
 
 /**
@@ -48,14 +55,19 @@ function bucketFor(contentType: string): StyleElementType {
 function StyleControls({
   styleGroup,
   type,
+  lockedByRemote,
+  lockHolderName,
 }: {
   styleGroup: string;
   type: StyleElementType;
+  lockedByRemote: boolean;
+  lockHolderName: string | null;
 }): ReactNode {
   const sendStyles = useSendStyles();
 
   /** Send a single validated declaration, dropping invalid candidates. */
   const send = (property: string, value: string | null): void => {
+    if (lockedByRemote) return; // remote participant is editing — read-only.
     if (value === null) return; // rejected by the validator — never send.
     const payload: StyleUpdatePayload = { styleGroup, type, property, value };
     void sendStyles(payload);
@@ -80,6 +92,13 @@ function StyleControls({
       </div>
       <p className="panel__hint">Applies to every {styleGroup} block on the page.</p>
 
+      {lockedByRemote && (
+        <p className="panel__lock" role="status" data-testid="edit-lock-banner">
+          🔒 {lockHolderName ?? "Someone"} is editing — read-only
+        </p>
+      )}
+
+      <fieldset className="panel__fieldset" disabled={lockedByRemote}>
       {isAllowed(type, "color") && (
         <label className="panel__field">
           <span>Color</span>
@@ -104,6 +123,7 @@ function StyleControls({
           />
         </label>
       )}
+      </fieldset>
     </section>
   );
 }
@@ -111,6 +131,8 @@ function StyleControls({
 export function StylePanel({
   selectedTargetId,
   selectedContentId,
+  lockedByRemote = false,
+  lockHolderName = null,
 }: StylePanelProps): ReactNode {
   const { snapshot } = useContentStore();
 
@@ -139,6 +161,8 @@ export function StylePanel({
     <StyleControls
       styleGroup={selected.content.styleGroup ?? selected.content.type}
       type={bucketFor(selected.content.type)}
+      lockedByRemote={lockedByRemote}
+      lockHolderName={lockHolderName}
     />
   );
 }

@@ -30,18 +30,14 @@
  * `useHostSelection()`.
  */
 
+import { useMemo, useState, type ReactNode } from "react";
 import {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+  EditableContext,
+  type EditableContextValue,
+} from "./editableContext";
 import {
   HostShell,
   Overlays,
-  Palette,
-  useHostSelection,
   type OverlayChromeParts,
   type HostShellLayoutParts,
 } from "@stardust-cms/dashboard";
@@ -49,55 +45,47 @@ import { ColabProvider, Cursor } from "colab-ui/react";
 import { EditLock } from "colab-ui";
 import { createDemoContentStore } from "@demo/shared/store";
 import { DEMO_BLOCK_TYPES } from "./blockTypes";
-import { VersionControls } from "./VersionControls";
-import { EditPanel } from "./EditPanel";
-import { StylePanel } from "./StylePanel";
 import { SITE_ORIGIN, DESIGN_WIDTH, DESIGN_HEIGHT } from "./config";
 import {
   PRESENCE_ENABLED,
   PRESENCE_SERVER_URL,
   PRESENCE_ROOM,
   makeLocalIdentity,
+  readStoredName,
+  writeStoredName,
 } from "./presence/config";
-import { usePublishEditLock } from "./presence/usePresenceSession";
 import { PresenceOverlays } from "./presence/PresenceOverlays";
-import { PresenceIndicator } from "./presence/PresenceIndicator";
+import { SidebarPanels } from "./SidebarPanels";
 
 /** The interactions registered on the `colab` session (cursors + edit-locks). */
 const PRESENCE_INTERACTIONS = [Cursor, EditLock];
-
-/**
- * Shared, reactive "is the editor editable?" flag. It is `true` when the store
- * view is the draft (`vce.viewVersion() === null`) and `false` when viewing a
- * published/historical version. `VersionControls` is the sole writer — it calls
- * `setEditable` whenever it changes the view (publish / view-live / edit-draft /
- * prev / next) — and the whole editor tree reads it to gate the dashboard's
- * `editable` props on `HostShell` / `Overlays` / `Palette`.
- */
-interface EditableContextValue {
-  editable: boolean;
-  setEditable: (editable: boolean) => void;
-}
-
-const EditableContext = createContext<EditableContextValue | null>(null);
-
-/** Reads the shared editable flag + its setter. Must be used inside `App`. */
-export function useEditable(): EditableContextValue {
-  const ctx = useContext(EditableContext);
-  if (ctx === null) {
-    throw new Error("useEditable must be used within <EditableProvider>");
-  }
-  return ctx;
-}
 
 export function App(): ReactNode {
   // Construct the store exactly once (a fresh instance would reset the seed +
   // version history on every render).
   const store = useMemo(() => createDemoContentStore(), []);
 
-  // Mint the per-tab local identity exactly once (never at module scope), so two
-  // tabs get distinct ids/names/colors in the shared room.
-  const identity = useMemo(() => makeLocalIdentity(), []);
+  // The committed display name for THIS tab. Persisted per-tab in sessionStorage
+  // (distinct across tabs, survives reload); defaults to null → identity uses its
+  // random per-tab default name. Committed on Enter/blur (see `NameField`).
+  const [committedName, setCommittedName] = useState<string | null>(() =>
+    readStoredName(),
+  );
+
+  const commitName = (raw: string): void => {
+    const trimmed = raw.trim();
+    writeStoredName(trimmed);
+    setCommittedName(trimmed ? trimmed : null);
+  };
+
+  // Mint the per-tab local identity. The id/color are stable per tab (persisted);
+  // the name reflects `committedName`, so re-minting on a name change yields the
+  // same participant with a new display name. Keying `<ColabProvider>` by the
+  // name below makes it re-join cleanly with the new identity.
+  const identity = useMemo(
+    () => makeLocalIdentity(committedName),
+    [committedName],
+  );
 
   // Reactive editable flag. Starts editable (the store seeds on the draft) and is
   // driven thereafter by `VersionControls` via `useEditable().setEditable`.
@@ -128,16 +116,11 @@ export function App(): ReactNode {
 
   const renderLayout = ({ canvas, status }: HostShellLayoutParts): ReactNode => (
     <div className="admin-layout">
-      <header className="admin-topbar">
-        <div className="admin-brand">
-          <span className="admin-brand__mark" aria-hidden="true" />
-          <span className="admin-brand__word">Northwind</span>
-          <span className="admin-brand__sub">Editor</span>
-        </div>
-        {/* Shell-owned connection status (dot + label + origin/scale meta).
-            Restyled into a clean badge; origin/scale demoted to muted metadata. */}
-        {status}
-      </header>
+      <TopBar
+        status={status}
+        nameFieldName={committedName ?? identity.name}
+        onCommitName={commitName}
+      />
       <div className="admin-body">
         <div className="admin-main">{canvas}</div>
         <aside className="admin-sidebar">
@@ -175,6 +158,11 @@ export function App(): ReactNode {
   // so no custom transport bridge is needed anymore.
   return (
     <ColabProvider
+      // Key by the committed identity name so a name change fully remounts the
+      // provider and re-joins the room cleanly with the new identity (colab-ui
+      // builds the session from `identity` in a memo; a fresh mount guarantees a
+      // clean handshake). A brief reconnect on name-commit is acceptable.
+      key={identity.name}
       serverUrl={PRESENCE_SERVER_URL}
       room={PRESENCE_ROOM}
       identity={identity}
@@ -185,105 +173,74 @@ export function App(): ReactNode {
   );
 }
 
-/**
- * The sidebar's selection-aware contents. Rendered INSIDE the `HostShell` tree
- * (from `renderLayout`), so it can read the shell-tracked selection via the
- * dashboard's `useHostSelection()` hook. That selection feeds the field editor,
- * the style panel, and — when presence is on — the `colab` edit-lock publisher.
- */
-interface SidebarPanelsProps {
-  selfId: string;
+interface TopBarProps {
+  status: ReactNode;
+  nameFieldName: string;
+  onCommitName: (name: string) => void;
 }
 
-function SidebarPanels({ selfId }: SidebarPanelsProps): ReactNode {
-  const { selectedTargetId, selectedContentId } = useHostSelection();
-  const { editable } = useEditable();
-  const [tab, setTab] = useState<"content" | "styles">("content");
-
+/** The admin top bar: brand, per-tab name field (presence only), and status. */
+function TopBar({
+  status,
+  nameFieldName,
+  onCommitName,
+}: TopBarProps): ReactNode {
   return (
-    <>
-      {/* Content | Styles tab switcher — pinned at the TOP of the sidebar. Only
-          ONE panel renders at a time. The Add-blocks palette lives WITH the
-          Content tab; Presence / Versioning stay outside the tabs. */}
-      <section className="panel sidebar-tabs">
-        {!editable && (
-          <p className="sidebar-tabs__readonly" role="status">
-            Read-only — viewing a published version
-          </p>
-        )}
-        <div className="tabbar" role="tablist" aria-label="Editor panels">
-          <button
-            type="button"
-            role="tab"
-            className={`tabbar__tab ${tab === "content" ? "tabbar__tab--active" : ""}`}
-            aria-selected={tab === "content"}
-            data-testid="sidebar-tab-content"
-            onClick={() => setTab("content")}
-          >
-            Content
-          </button>
-          <button
-            type="button"
-            role="tab"
-            className={`tabbar__tab ${tab === "styles" ? "tabbar__tab--active" : ""}`}
-            aria-selected={tab === "styles"}
-            data-testid="sidebar-tab-styles"
-            onClick={() => setTab("styles")}
-          >
-            Styles
-          </button>
-        </div>
-      </section>
-
-      {tab === "content" ? (
-        <>
-          {/* Add-blocks palette grouped under the Content tab. Disables its drag
-              when the editor is read-only. */}
-          <Palette blockTypes={DEMO_BLOCK_TYPES} editable={editable} />
-          <EditPanel
-            blockTypes={DEMO_BLOCK_TYPES}
-            selectedTargetId={selectedTargetId}
-            selectedContentId={selectedContentId}
-          />
-        </>
-      ) : (
-        <StylePanel
-          selectedTargetId={selectedTargetId}
-          selectedContentId={selectedContentId}
-        />
-      )}
+    <header className="admin-topbar">
+      <div className="admin-brand">
+        <span className="admin-brand__mark" aria-hidden="true" />
+        <span className="admin-brand__word">Northwind</span>
+        <span className="admin-brand__sub">Editor</span>
+      </div>
+      {/* Per-tab display-name field. Only shown when presence is on. Commits on
+          Enter/blur, driving the colab identity. */}
       {PRESENCE_ENABLED && (
-        <PresenceSidebar
-          selfId={selfId}
-          selectedTargetId={selectedTargetId}
-          selectedContentId={selectedContentId}
-        />
+        <NameField initialName={nameFieldName} onCommit={onCommitName} />
       )}
-      <VersionControls />
-    </>
+      {/* Shell-owned connection status (dot + label + origin/scale meta). */}
+      {status}
+    </header>
   );
 }
 
-interface PresenceSidebarProps {
-  selectedTargetId: string | null;
-  selectedContentId: string | null;
-  selfId: string;
+interface NameFieldProps {
+  initialName: string;
+  onCommit: (name: string) => void;
 }
 
 /**
- * The presence-only sidebar slice, mounted inside `<ColabProvider>` (via the
- * shell tree) so its `colab` hooks resolve. It publishes the selection as an
- * advisory edit-lock and shows the participant indicator.
+ * Top-bar display-name input. Local, uncontrolled-ish state while typing; commits
+ * the value to the colab identity ONLY on Enter or blur (never per keystroke), so
+ * a name change triggers exactly one identity re-join rather than one per key.
  */
-function PresenceSidebar({
-  selectedTargetId,
-  selectedContentId,
-  selfId,
-}: PresenceSidebarProps): ReactNode {
-  usePublishEditLock({
-    targetId: selectedTargetId,
-    contentId: selectedContentId,
-  });
+function NameField({ initialName, onCommit }: NameFieldProps): ReactNode {
+  const [value, setValue] = useState(initialName);
 
-  return <PresenceIndicator selfId={selfId} />;
+  const commit = (): void => {
+    if (value.trim() !== initialName.trim()) {
+      onCommit(value);
+    }
+  };
+
+  return (
+    <label className="admin-name">
+      <span className="admin-name__label">You</span>
+      <input
+        type="text"
+        className="admin-name__input"
+        data-testid="display-name-input"
+        placeholder="Your name"
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+        }}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.currentTarget.blur();
+          }
+        }}
+      />
+    </label>
+  );
 }
