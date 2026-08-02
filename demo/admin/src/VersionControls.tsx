@@ -30,6 +30,7 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { useContentStore } from "@stardust-cms/dashboard";
 import type { VceContentStoreAdapter } from "@demo/shared/store";
+import { useEditable } from "./App";
 
 /** A target id guaranteed to exist in the seed — used to fire a re-inject `select`. */
 const REINJECT_TARGET = "hero";
@@ -39,6 +40,7 @@ export function VersionControls(): ReactNode {
   const { store } = contentStore;
   const vce = store as VceContentStoreAdapter;
   const [, force] = useState(0);
+  const { setEditable } = useEditable();
 
   // Re-inject the store's current snapshot into the iframe by dispatching a
   // no-op `select` op through the shell's store binding. `apply` returns a fresh
@@ -46,10 +48,14 @@ export function VersionControls(): ReactNode {
   // via `cms/sendElements`. `select` preserves the view pointer (see the
   // adapter's `apply`), so the pinned version survives. `force` re-renders this
   // control so its state readouts (live/viewing) refresh.
+  // After each view change we (a) re-inject the projection, (b) re-render this
+  // control, and (c) publish the new editable state to the shared context so the
+  // WHOLE editor (HostShell / Overlays / Palette) reacts, not just this control.
   const reinject = useCallback(() => {
     contentStore.apply({ kind: "select", targetId: REINJECT_TARGET });
     force((n) => n + 1);
-  }, [contentStore]);
+    setEditable(vce.viewVersion() === null);
+  }, [contentStore, vce, setEditable]);
 
   const live = vce.liveVersion();
   const viewing = vce.viewVersion();
