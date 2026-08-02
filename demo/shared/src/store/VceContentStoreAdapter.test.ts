@@ -60,6 +60,39 @@ describe("VceContentStoreAdapter", () => {
     expect(snap.some((p) => p.contentId === heroFirst.contentId)).toBe(false);
   });
 
+  it("move reorders an existing on-page item within its target (drag-to-front)", () => {
+    // Seed a target whose SECOND item's id is lexicographically GREATER than the
+    // first's, so the collision tie-break (asc collectionId) would order them the
+    // WRONG way. Items: "a-top" (0), "z-bottom" (1). Drag "z-bottom" to the front
+    // (drop index 0, colliding with "a-top"). The requested order is
+    // [z-bottom, a-top] — but asc-collectionId tie-break would keep "a-top" first.
+    // Pre-fix this silently failed (item landed in the wrong slot); the half-step
+    // fix sorts the moved item strictly into the requested slot. Exercises the
+    // full HostContentOp("move") → moveContent path.
+    const store = new VceContentStoreAdapter([
+      { targetId: "hero", index: 0, content: { id: "a-top", type: "text", value: "A" } },
+      { targetId: "hero", index: 1, content: { id: "z-bottom", type: "text", value: "Z" } },
+    ]);
+    const before = store
+      .getSnapshot()
+      .filter((p) => p.targetId === "hero")
+      .sort((a, b) => a.index - b.index);
+    expect(before.map((p) => p.contentId)).toEqual(["a-top", "z-bottom"]);
+
+    const snap = store.apply({
+      kind: "move",
+      from: { targetId: "hero", index: 1, contentId: "z-bottom" },
+      to: { targetId: "hero", index: 0 },
+    });
+
+    const after = snap
+      .filter((p) => p.targetId === "hero")
+      .sort((a, b) => a.index - b.index);
+    expect(after.map((p) => p.contentId)).toEqual(["z-bottom", "a-top"]);
+    // Dense, 0-based indices after reindex.
+    expect(after.map((p) => p.index)).toEqual([0, 1]);
+  });
+
   it("select is a no-op that returns a fresh snapshot", () => {
     const store = createDemoContentStore();
     const a = store.getSnapshot();

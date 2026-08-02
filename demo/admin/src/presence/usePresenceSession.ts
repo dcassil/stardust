@@ -65,7 +65,25 @@ export function contentScopeId(
  * NOTE: this is cooperative, client-side policy — a malicious/older client could
  * still steal. TRUE server-enforced exclusion would require a `colab-server`/
  * `colab-ui` change (a first-holder-wins reduce instead of last-write-wins).
+ *
+ * LIFECYCLE SAFETY-CLEARS — beyond the selection→lock binding, this hook adds two
+ * belt-and-suspenders releases so an unattended lock never blocks others:
+ *
+ *  1. RELOAD / LEAVE / CLOSE (`pagehide` + `beforeunload`): synchronously emit a
+ *     `clear` for the scope we currently hold, so the lock releases INSTANTLY
+ *     rather than waiting for `colab-server`'s socket-close reconcile. Best-effort
+ *     and correct: we only clear a scope we actually acquired ({@link heldScopeRef}).
+ *  2. IDLE RELEASE ({@link IDLE_RELEASE_MS}): a timer, reset on real user
+ *     interaction (`pointermove` / `pointerdown` / `keydown`), releases the held
+ *     lock after 5 minutes of no interaction so an AFK holder stops blocking
+ *     others. The next interaction + selection re-acquires via the normal path.
+ *
+ * Both are cleaned up (listeners + timer) on unmount, and both no-op when nothing
+ * is held. They never emit a `clear` for a scope held by a different participant.
  */
+/** Idle threshold after which the local user's held edit-lock is released. */
+export const IDLE_RELEASE_MS = 5 * 60 * 1000;
+
 export function usePublishEditLock(
   selection: PresenceSelection,
   selfId: string,
@@ -84,6 +102,18 @@ export function usePublishEditLock(
   const lockedByRef = useRef(selectors.lockedBy);
   lockedByRef.current = selectors.lockedBy;
 
+  // `send` in a ref so the lifecycle/idle handlers (installed once) always call
+  // the latest transport binding without re-subscribing their listeners.
+  const sendRef = useRef(send);
+  sendRef.current = send;
+
+  // The scope THIS hook currently holds a lock on (the exact scope it acquired),
+  // or `null` when it holds nothing. The lifecycle/idle safety-clears read this so
+  // they only ever release a lock we actually own. Kept in a ref so the once-
+  // installed handlers see the live value without re-running.
+  const heldScopeRef = useRef<ScopeId | null>(null);
+
+  // ---- selection → acquire / release binding ----
   useEffect(() => {
     if (scopeId) {
       // Don't steal a lock a different participant already holds.
@@ -93,14 +123,74 @@ export function usePublishEditLock(
       }
       const lock: EditLockEvent = { scopeId, action: "lock" };
       send(lock);
+      heldScopeRef.current = scopeId;
       return () => {
         // Only clear the lock we actually acquired above.
         const clear: EditLockEvent = { scopeId, action: "clear" };
         send(clear);
+        if (heldScopeRef.current === scopeId) heldScopeRef.current = null;
       };
     }
     return undefined;
   }, [send, scopeId, selfId]);
+
+  // ---- release a currently-held lock, idempotently ----
+  // Shared by the pagehide/beforeunload and idle paths. Emits a `clear` for the
+  // held scope (if any) and forgets it, so a subsequent release is a no-op.
+  const releaseHeld = useRef((): void => {
+    const held = heldScopeRef.current;
+    if (held === null) return;
+    heldScopeRef.current = null;
+    const clear: EditLockEvent = { scopeId: held, action: "clear" };
+    sendRef.current(clear);
+  });
+
+  // ---- reload / leave / close safety-clear ----
+  useEffect(() => {
+    const onLifecycle = (): void => {
+      releaseHeld.current();
+    };
+    // `pagehide` covers reload/navigation/close (and bfcache) reliably;
+    // `beforeunload` is the belt to its suspenders for browsers that skip it.
+    window.addEventListener("pagehide", onLifecycle);
+    window.addEventListener("beforeunload", onLifecycle);
+    return () => {
+      window.removeEventListener("pagehide", onLifecycle);
+      window.removeEventListener("beforeunload", onLifecycle);
+    };
+  }, []);
+
+  // ---- idle release: drop the held lock after IDLE_RELEASE_MS of no interaction ----
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const arm = (): void => {
+      if (timer !== undefined) clearTimeout(timer);
+      timer = setTimeout(() => {
+        releaseHeld.current();
+      }, IDLE_RELEASE_MS);
+    };
+    // Only genuine user interaction re-arms the timer. `isTrusted` filters out
+    // programmatic/synthetic events so scripted dispatches never keep a lock alive.
+    const onActivity = (event: Event): void => {
+      if (!event.isTrusted) return;
+      arm();
+    };
+    const events: readonly (keyof WindowEventMap)[] = [
+      "pointermove",
+      "pointerdown",
+      "keydown",
+    ];
+    for (const name of events) {
+      window.addEventListener(name, onActivity, { passive: true });
+    }
+    arm(); // start the idle countdown immediately
+    return () => {
+      if (timer !== undefined) clearTimeout(timer);
+      for (const name of events) {
+        window.removeEventListener(name, onActivity);
+      }
+    };
+  }, []);
 }
 
 /**
