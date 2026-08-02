@@ -88,6 +88,11 @@ body {
   position: sticky;
   top: 0;
   z-index: 20;
+  /* Span the FULL layout width above both the canvas and the sidebar (a sticky
+     flex item can otherwise shrink-wrap to its content). */
+  width: 100%;
+  flex: 0 0 auto;
+  align-self: stretch;
   display: flex;
   align-items: center;
   gap: 16px;
