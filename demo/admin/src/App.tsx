@@ -202,11 +202,9 @@ function SidebarPanels({ selfId }: SidebarPanelsProps): ReactNode {
 
   return (
     <>
-      {/* Palette disables its drag when the editor is read-only. */}
-      <Palette blockTypes={DEMO_BLOCK_TYPES} editable={editable} />
-
-      {/* Content | Styles tab switcher — only ONE panel renders at a time. The
-          Palette / Presence / Versioning sections stay outside the tabs. */}
+      {/* Content | Styles tab switcher — pinned at the TOP of the sidebar. Only
+          ONE panel renders at a time. The Add-blocks palette lives WITH the
+          Content tab; Presence / Versioning stay outside the tabs. */}
       <section className="panel sidebar-tabs">
         {!editable && (
           <p className="sidebar-tabs__readonly" role="status">
@@ -238,11 +236,16 @@ function SidebarPanels({ selfId }: SidebarPanelsProps): ReactNode {
       </section>
 
       {tab === "content" ? (
-        <EditPanel
-          blockTypes={DEMO_BLOCK_TYPES}
-          selectedTargetId={selectedTargetId}
-          selectedContentId={selectedContentId}
-        />
+        <>
+          {/* Add-blocks palette grouped under the Content tab. Disables its drag
+              when the editor is read-only. */}
+          <Palette blockTypes={DEMO_BLOCK_TYPES} editable={editable} />
+          <EditPanel
+            blockTypes={DEMO_BLOCK_TYPES}
+            selectedTargetId={selectedTargetId}
+            selectedContentId={selectedContentId}
+          />
+        </>
       ) : (
         <StylePanel
           selectedTargetId={selectedTargetId}
