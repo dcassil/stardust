@@ -96,22 +96,7 @@ export function App(): ReactNode {
   );
 
   const renderOverlayChrome = (parts: OverlayChromeParts): ReactNode => (
-    <>
-      {/* Gate the demo's own overlays with the shell-forwarded `parts.editable`
-          (which reflects `HostShell editable={editable}`): selection highlight +
-          delete (x) + drop become inert in read-only. */}
-      <Overlays
-        targets={parts.targets}
-        callbacks={parts.callbacks}
-        selectedTargetId={parts.selectedTargetId}
-        selectedContentId={parts.selectedContentId}
-        editable={parts.editable}
-      />
-      {/* Presence overlays still render in read-only — viewing is fine. */}
-      {PRESENCE_ENABLED && (
-        <PresenceOverlays targets={parts.targets} selfId={identity.id} />
-      )}
-    </>
+    <OverlayChrome parts={parts} selfId={identity.id} />
   );
 
   const renderLayout = ({ canvas, status }: HostShellLayoutParts): ReactNode => (
@@ -170,6 +155,43 @@ export function App(): ReactNode {
     >
       {shell}
     </ColabProvider>
+  );
+}
+
+interface OverlayChromeProps {
+  parts: OverlayChromeParts;
+  selfId: string;
+}
+
+/**
+ * The overlay chrome rendered by `HostShell`'s `renderOverlayChrome` slot: the
+ * bundled editing {@link Overlays} plus (when presence is on) the `colab`
+ * {@link PresenceOverlays}. The shell-forwarded `parts.pointer` (the local user's
+ * pointer over the iframe, normalized 0..1) drives the full-page collaboration
+ * cursor.
+ */
+function OverlayChrome({ parts, selfId }: OverlayChromeProps): ReactNode {
+  return (
+    <>
+      {/* Gate the demo's own overlays with the shell-forwarded `parts.editable`
+          (which reflects `HostShell editable={editable}`): selection highlight +
+          delete (x) + drop become inert in read-only. */}
+      <Overlays
+        targets={parts.targets}
+        callbacks={parts.callbacks}
+        selectedTargetId={parts.selectedTargetId}
+        selectedContentId={parts.selectedContentId}
+        editable={parts.editable}
+      />
+      {/* Presence overlays still render in read-only — viewing is fine. */}
+      {PRESENCE_ENABLED && (
+        <PresenceOverlays
+          targets={parts.targets}
+          selfId={selfId}
+          pointer={parts.pointer}
+        />
+      )}
+    </>
   );
 }
 

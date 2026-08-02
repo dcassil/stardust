@@ -42,7 +42,11 @@ function styleFeatureEnabled(): boolean {
 export function App(): ReactNode {
   return (
     <FrameLinkProvider options={FRAME_LINK_OPTIONS}>
-      <StardustAdapterProvider>
+      {/* `publishPointer` streams this iframe's pointer (normalized 0..1, design
+          space) to the host as `cms/pointer`, so the admin can render a
+          full-page collaboration cursor over the WHOLE embedded page — not just
+          the editing-overlay content boxes. Off by default; presence needs it. */}
+      <StardustAdapterProvider publishPointer>
         {/* Opt-in style feature: subscribes to cms/updateStyles only when
             enabled; renders nothing and leaves zero footprint when disabled. */}
         <StyleFeature enabled={styleFeatureEnabled()} important />

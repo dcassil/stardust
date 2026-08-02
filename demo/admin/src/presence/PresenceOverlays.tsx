@@ -10,28 +10,25 @@
  * a NORMALIZED 0..1 space relative to the enclosing `<ColabStage>`:
  *  - `<ColabStage>` fills this layer (which the shell sizes to the scaled
  *    canvas — `.admin-canvas`, i.e. `designSize × scale`), so its measured box
- *    IS the on-screen scaled-iframe box. Because the box is already the SCALED
- *    canvas, the normalized 0..1 math is inherently scale-correct: no explicit
- *    scale factor is needed — `(clientX - box.left) / box.width` folds the iframe
- *    scale in, since `box.width === designWidth × scale`. The layer also spans
- *    the WHOLE canvas (nav, hero, footer, empty gaps), so cursors are captured
- *    and rendered everywhere over the page, not only over editable targets.
- *  - The local pointer is sampled at the DOCUMENT level and normalized against
- *    the LIVE canvas rect (see `useDocumentCursorCapture`).
+ *    IS the on-screen scaled-iframe box.
+ *  - The local pointer now arrives from the IFRAME itself: the embedded site
+ *    opts into `publishPointer`, streaming `cms/pointer` as a normalized 0..1
+ *    point in the iframe's DESIGN space. `HostShell` forwards it verbatim as
+ *    `OverlayChromeParts.pointer`, and we publish it DIRECTLY as the local
+ *    `Cursor` sample (see `useIframePointerCapture`). Because the value is
+ *    already normalized in design space (transform-neutral), it needs no host-
+ *    rect math and is inherently scale/scroll independent — and it covers the
+ *    WHOLE page (nav, hero, footer, empty gaps), since the iframe captures its
+ *    own pointer over its entire body, not just the editing-overlay boxes.
  *  - `<RemoteCursors>` projects each remote normalized point back to
  *    `point * stageBox` — the only screen-space math — landing cursors over the
  *    canvas exactly where each peer pointed, regardless of anyone's scale.
  *
- * SCROLL — `.admin-canvas` lives inside the scrollable `.admin-canvas-scroll`.
- * colab-ui's `<ColabStage>` only re-measures its box on ResizeObserver (size),
- * NOT on scroll, so the cached box's viewport `left/top` go stale once the canvas
- * scrolls — which would offset every CAPTURED point. We therefore measure the
- * canvas rect LIVE inside the pointermove handler rather than trusting the cached
- * box, so capture stays correct at any scroll position. The RENDER side needs no
- * scroll correction: remote cursors are absolutely positioned INSIDE this layer,
- * which scrolls WITH the canvas, so the content-relative `point × box.size`
- * offset already tracks the content through scroll (and `box.size` is scroll-
- * invariant, kept fresh by the ResizeObserver).
+ * SCROLL — no scroll correction is needed on either side. The captured value is
+ * a design-space normalized point from the iframe (independent of the admin's
+ * canvas scroll/scale entirely), and remote cursors are absolutely positioned
+ * INSIDE this layer, which scrolls WITH the canvas, so `point × box.size` tracks
+ * the content through scroll (`box.size` kept fresh by colab-ui's ResizeObserver).
  *
  * EDIT LOCKS — the shell hands us `targets` whose `geometry` (and each child
  * item's `geometry`) is ALREADY projected into canvas pixels. Locks are keyed per
@@ -42,7 +39,8 @@
  * the whole target area.
  */
 
-import { useEffect, useRef, type ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
+import type { HostPointer } from "@stardust-cms/iframe-adapter/host";
 import {
   ColabStage,
   Cursor,
@@ -63,31 +61,34 @@ export interface PresenceOverlaysProps {
   targets: MappedTarget[];
   /** The local participant id, so self-held locks are not badged. */
   selfId: string;
+  /**
+   * The local user's latest pointer over the embedded iframe, forwarded from
+   * `OverlayChromeParts.pointer` (which HostShell forwards from
+   * `useStardustHost().pointer`). NORMALIZED 0..1 in the iframe's design space,
+   * transform-neutral — fed DIRECTLY to the `Cursor` interaction. `null` when the
+   * pointer has left the iframe (no cursor).
+   */
+  pointer: HostPointer;
 }
 
 export function PresenceOverlays({
   targets,
   selfId,
+  pointer,
 }: PresenceOverlaysProps): ReactElement {
   // `<ColabStage>` force-sets `position: relative` on its own element (dropping
   // any `absolute`/`inset` we pass), so it can't itself be the fill layer. Wrap
   // it in an absolutely-positioned, `pointer-events: none` layer over the canvas
   // and let the stage fill that wrapper — the stage box then measures the full
   // canvas, which the normalized cursor math + `<RemoteCursors>` depend on.
-  // Ref to THIS full-bleed layer. Its rect equals the scaled `.admin-canvas`
-  // box (it is `inset: 0` over it), so we measure it live for scroll-correct
-  // capture without trusting colab-ui's scroll-stale cached stage box.
-  const layerRef = useRef<HTMLDivElement>(null);
-
   return (
     <div
-      ref={layerRef}
       className="presence-layer"
       data-presence-layer
       style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
     >
       <ColabStage style={{ width: "100%", height: "100%" }}>
-        <StageContents targets={targets} selfId={selfId} layerRef={layerRef} />
+        <StageContents targets={targets} selfId={selfId} pointer={pointer} />
       </ColabStage>
     </div>
   );
@@ -96,20 +97,20 @@ export function PresenceOverlays({
 interface StageContentsProps {
   targets: MappedTarget[];
   selfId: string;
-  layerRef: React.RefObject<HTMLDivElement | null>;
+  pointer: HostPointer;
 }
 
 /**
- * The presence content rendered INSIDE `<ColabStage>`, so `useCursorCapture` /
+ * The presence content rendered INSIDE `<ColabStage>`, so `useInteraction` /
  * `<RemoteCursors>` (which read the stage context via `useColabStage`) resolve.
  */
 function StageContents({
   targets,
   selfId,
-  layerRef,
+  pointer,
 }: StageContentsProps): ReactElement {
-  // Publish the local pointer as a normalized cursor sample.
-  useDocumentCursorCapture(layerRef);
+  // Publish the iframe-sourced pointer as the local normalized cursor sample.
+  useIframePointerCapture(pointer);
 
   return (
     <>
@@ -120,51 +121,44 @@ function StageContents({
 }
 
 /**
- * Capture the local pointer at the DOCUMENT level and publish it through the
- * `colab` `Cursor` interaction as a normalized (0..1) point relative to the
- * `<ColabStage>` box.
- *
- * WHY NOT `useCursorCapture`: colab-ui's built-in capture samples via the
- * `<ColabStage>` element's own React `onPointerMove`, which never fires while the
- * stage stays `pointer-events: none`. The presence layer MUST stay
- * `pointer-events: none` so it never steals clicks from the editing overlays
- * beneath it. A document-level listener normalized against the LIVE canvas rect
- * reproduces the same normalized sample stream without capturing pointer events —
- * the neutral, transform-agnostic point the `Cursor` interaction expects. Because
- * the listener is document-level, it fires over the WHOLE page (nav, hero,
- * footer, empty gaps), so movement everywhere is broadcast — not only over
- * editable targets.
- *
- * WHY A LIVE RECT (not the cached stage box): colab-ui re-measures the stage box
- * only on ResizeObserver, never on scroll, so the cached box's viewport `left`/
- * `top` go stale the moment `.admin-canvas-scroll` scrolls — offsetting every
- * captured point. Reading `layerRef.current.getBoundingClientRect()` per move
- * always reflects the current scroll position. `clientX/clientY` are viewport-
- * relative and so is the rect, so scroll cancels cleanly; dividing by the rect's
- * (already scaled) width/height folds the iframe scale in, so capture is correct
- * at any scroll + scale.
+ * A point far off the stage. When the local pointer LEAVES the iframe
+ * (`pointer === null`), we publish this sentinel so `<RemoteCursors>` renders the
+ * peer's cursor well outside the visible canvas box — the effective "no cursor"
+ * for peers. The `colab` `Cursor` interaction is send-only (its wire protocol
+ * carries a `{x,y}` point with no clear/remove message, and its reducer keeps the
+ * last point per participant until they leave the room), so a stale cursor would
+ * otherwise freeze in place on leave. Projecting `point × box` puts this far
+ * negative, off-screen, which is the intended "pointer gone" appearance.
  */
-function useDocumentCursorCapture(
-  layerRef: React.RefObject<HTMLDivElement | null>,
-): void {
+const CURSOR_GONE = { x: -1, y: -1 } as const;
+
+/**
+ * Publish the IFRAME-SOURCED pointer as the local `colab` `Cursor` sample.
+ *
+ * SOURCE: `OverlayChromeParts.pointer` — the pointer the embedded site captures
+ * over its OWN document (via `publishPointer` / `cms/pointer`) and the host
+ * forwards NORMALIZED 0..1 in the iframe's DESIGN space. This replaces the old
+ * document-level `pointermove` capture, which only saw the pointer over the
+ * editing-overlay content boxes — pointer events over the cross-origin iframe body
+ * (hero, nav, footer, gaps) go to the IFRAME's document, never the admin's, so the
+ * host never saw them. The iframe now captures its own pointer over the WHOLE
+ * page, so the colab cursor tracks everywhere.
+ *
+ * COORDINATES: the value is already normalized 0..1 in the iframe design space
+ * (transform-neutral), exactly what the `Cursor` interaction expects, and exactly
+ * what `<RemoteCursors>` re-projects onto its stage box. So we feed it DIRECTLY —
+ * no stage multiply, no host-rect math. Being design-space normalized, it is
+ * inherently scale- and scroll-independent (the whole point of the fix).
+ *
+ * LEAVE: when `pointer` is `null` the pointer left the iframe; we publish
+ * {@link CURSOR_GONE} so the peer's cursor moves off-screen (see its doc).
+ */
+function useIframePointerCapture(pointer: HostPointer): void {
   const { send } = useInteraction(Cursor);
 
   useEffect(() => {
-    const onMove = (event: PointerEvent): void => {
-      const element = layerRef.current;
-      if (element === null) return;
-      const rect = element.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-      const x = (event.clientX - rect.left) / rect.width;
-      const y = (event.clientY - rect.top) / rect.height;
-      if (x < 0 || y < 0 || x > 1 || y > 1) return;
-      send({ x, y });
-    };
-    document.addEventListener("pointermove", onMove);
-    return () => {
-      document.removeEventListener("pointermove", onMove);
-    };
-  }, [layerRef, send]);
+    send(pointer ?? CURSOR_GONE);
+  }, [pointer, send]);
 }
 
 interface EditLockLayerProps {
