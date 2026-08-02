@@ -30,7 +30,13 @@
  * `useHostSelection()`.
  */
 
-import { useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   HostShell,
   Overlays,
@@ -60,6 +66,30 @@ import { PresenceIndicator } from "./presence/PresenceIndicator";
 /** The interactions registered on the `colab` session (cursors + edit-locks). */
 const PRESENCE_INTERACTIONS = [Cursor, EditLock];
 
+/**
+ * Shared, reactive "is the editor editable?" flag. It is `true` when the store
+ * view is the draft (`vce.viewVersion() === null`) and `false` when viewing a
+ * published/historical version. `VersionControls` is the sole writer — it calls
+ * `setEditable` whenever it changes the view (publish / view-live / edit-draft /
+ * prev / next) — and the whole editor tree reads it to gate the dashboard's
+ * `editable` props on `HostShell` / `Overlays` / `Palette`.
+ */
+interface EditableContextValue {
+  editable: boolean;
+  setEditable: (editable: boolean) => void;
+}
+
+const EditableContext = createContext<EditableContextValue | null>(null);
+
+/** Reads the shared editable flag + its setter. Must be used inside `App`. */
+export function useEditable(): EditableContextValue {
+  const ctx = useContext(EditableContext);
+  if (ctx === null) {
+    throw new Error("useEditable must be used within <EditableProvider>");
+  }
+  return ctx;
+}
+
 export function App(): ReactNode {
   // Construct the store exactly once (a fresh instance would reset the seed +
   // version history on every render).
@@ -69,14 +99,27 @@ export function App(): ReactNode {
   // tabs get distinct ids/names/colors in the shared room.
   const identity = useMemo(() => makeLocalIdentity(), []);
 
+  // Reactive editable flag. Starts editable (the store seeds on the draft) and is
+  // driven thereafter by `VersionControls` via `useEditable().setEditable`.
+  const [editable, setEditable] = useState(true);
+  const editableCtx = useMemo<EditableContextValue>(
+    () => ({ editable, setEditable }),
+    [editable],
+  );
+
   const renderOverlayChrome = (parts: OverlayChromeParts): ReactNode => (
     <>
+      {/* Gate the demo's own overlays with the shell-forwarded `parts.editable`
+          (which reflects `HostShell editable={editable}`): selection highlight +
+          delete (x) + drop become inert in read-only. */}
       <Overlays
         targets={parts.targets}
         callbacks={parts.callbacks}
         selectedTargetId={parts.selectedTargetId}
         selectedContentId={parts.selectedContentId}
+        editable={parts.editable}
       />
+      {/* Presence overlays still render in read-only — viewing is fine. */}
       {PRESENCE_ENABLED && (
         <PresenceOverlays targets={parts.targets} selfId={identity.id} />
       )}
@@ -105,6 +148,7 @@ export function App(): ReactNode {
   );
 
   const shell = (
+    <EditableContext.Provider value={editableCtx}>
     <div className="admin-root">
       <HostShell
         store={store}
@@ -112,10 +156,12 @@ export function App(): ReactNode {
         iframeOrigin={SITE_ORIGIN}
         designWidth={DESIGN_WIDTH}
         designHeight={DESIGN_HEIGHT}
+        editable={editable}
         renderOverlayChrome={renderOverlayChrome}
         renderLayout={renderLayout}
       />
     </div>
+    </EditableContext.Provider>
   );
 
   // Gate presence entirely on the flag: when off, no `<ColabProvider>` mounts, no
@@ -151,19 +197,58 @@ interface SidebarPanelsProps {
 
 function SidebarPanels({ selfId }: SidebarPanelsProps): ReactNode {
   const { selectedTargetId, selectedContentId } = useHostSelection();
+  const { editable } = useEditable();
+  const [tab, setTab] = useState<"content" | "styles">("content");
 
   return (
     <>
-      <Palette blockTypes={DEMO_BLOCK_TYPES} />
-      <EditPanel
-        blockTypes={DEMO_BLOCK_TYPES}
-        selectedTargetId={selectedTargetId}
-        selectedContentId={selectedContentId}
-      />
-      <StylePanel
-        selectedTargetId={selectedTargetId}
-        selectedContentId={selectedContentId}
-      />
+      {/* Palette disables its drag when the editor is read-only. */}
+      <Palette blockTypes={DEMO_BLOCK_TYPES} editable={editable} />
+
+      {/* Content | Styles tab switcher — only ONE panel renders at a time. The
+          Palette / Presence / Versioning sections stay outside the tabs. */}
+      <section className="panel sidebar-tabs">
+        {!editable && (
+          <p className="sidebar-tabs__readonly" role="status">
+            Read-only — viewing a published version
+          </p>
+        )}
+        <div className="tabbar" role="tablist" aria-label="Editor panels">
+          <button
+            type="button"
+            role="tab"
+            className={`tabbar__tab ${tab === "content" ? "tabbar__tab--active" : ""}`}
+            aria-selected={tab === "content"}
+            data-testid="sidebar-tab-content"
+            onClick={() => setTab("content")}
+          >
+            Content
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={`tabbar__tab ${tab === "styles" ? "tabbar__tab--active" : ""}`}
+            aria-selected={tab === "styles"}
+            data-testid="sidebar-tab-styles"
+            onClick={() => setTab("styles")}
+          >
+            Styles
+          </button>
+        </div>
+      </section>
+
+      {tab === "content" ? (
+        <EditPanel
+          blockTypes={DEMO_BLOCK_TYPES}
+          selectedTargetId={selectedTargetId}
+          selectedContentId={selectedContentId}
+        />
+      ) : (
+        <StylePanel
+          selectedTargetId={selectedTargetId}
+          selectedContentId={selectedContentId}
+        />
+      )}
       {PRESENCE_ENABLED && (
         <PresenceSidebar
           selfId={selfId}
