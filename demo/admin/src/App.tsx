@@ -85,13 +85,22 @@ export function App(): ReactNode {
 
   const renderLayout = ({ canvas, status }: HostShellLayoutParts): ReactNode => (
     <div className="admin-layout">
-      <div className="admin-main">
+      <header className="admin-topbar">
+        <div className="admin-brand">
+          <span className="admin-brand__mark" aria-hidden="true" />
+          <span className="admin-brand__word">Northwind</span>
+          <span className="admin-brand__sub">Editor</span>
+        </div>
+        {/* Shell-owned connection status (dot + label + origin/scale meta).
+            Restyled into a clean badge; origin/scale demoted to muted metadata. */}
         {status}
-        {canvas}
+      </header>
+      <div className="admin-body">
+        <div className="admin-main">{canvas}</div>
+        <aside className="admin-sidebar">
+          <SidebarPanels selfId={identity.id} />
+        </aside>
       </div>
-      <aside className="admin-sidebar">
-        <SidebarPanels selfId={identity.id} />
-      </aside>
     </div>
   );
 

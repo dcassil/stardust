@@ -1,19 +1,52 @@
+/**
+ * Demo admin — polished product-editor shell.
+ *
+ * Loaded AFTER `@stardust-cms/dashboard/tokens`, so these rules win over the
+ * dashboard's base `admin-*` / `ov-*` / `palette__*` / `panel__*` styling. The
+ * shell owns some DOM verbatim (the connection-status header, the block palette
+ * markup); those are RESTYLED here via CSS only — never re-templated.
+ *
+ * Design language mirrors the demo site (demo/site/src/styles.css): ink #0F172A,
+ * muted #64748B, border #E2E8F0, indigo accent #4F46E5, accent-soft #EEF2FF,
+ * with a refined slate-dark sidebar (#0B0E19, the site footer tone) carrying the
+ * same indigo accent for a cohesive, intentional dark rail.
+ */
+
 :root {
-  /* Small demo token set (SIFR-T-0010 NFR-004). */
-  --admin-bg: #0f172a;
-  --admin-panel-bg: #1e293b;
-  --admin-panel-fg: #e2e8f0;
-  --admin-muted: #94a3b8;
-  --admin-border: #334155;
-  --admin-accent: #6366f1;
-  --admin-accent-soft: rgba(99, 102, 241, 0.18);
-  --admin-selected: #ec4899;
-  --admin-ok: #22c55e;
-  --admin-warn: #f59e0b;
-  --admin-err: #ef4444;
-  --admin-radius: 8px;
-  --admin-gap: 16px;
+  /* Shared brand palette (from the site). */
+  --ink: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-soft: #eef2ff;
+  --section: #f7f8fa;
+
+  /* Dark sidebar rail. */
+  --rail: #0b0e19;
+  --rail-2: #111527;
+  --rail-card: #151a2d;
+  --rail-card-hover: #1a2035;
+  --rail-fg: #e6e9f2;
+  --rail-muted: #8b93ad;
+  --rail-border: #232a41;
+  --rail-accent: #818cf8;
+  --rail-accent-soft: rgba(129, 140, 248, 0.14);
+
+  /* Status colors. */
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --err: #ef4444;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-canvas: 0 24px 60px rgba(15, 23, 42, 0.18);
+  --shadow-topbar: 0 1px 0 rgba(15, 23, 42, 0.06);
+
+  --topbar-h: 56px;
+
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -22,91 +55,176 @@
 
 body {
   margin: 0;
-  background: var(--admin-bg);
-  color: var(--admin-panel-fg);
+  background: var(--section);
+  color: var(--ink);
 }
 
 .admin-root {
   min-height: 100vh;
 }
 
-/* --- Status strip -------------------------------------------------------- */
-.admin-status {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  background: var(--admin-panel-bg);
-  border-bottom: 1px solid var(--admin-border);
-  font-size: 13px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.admin-status__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--admin-muted);
-  flex: 0 0 auto;
-}
-.admin-status__dot--connecting { background: var(--admin-warn); animation: pulse 1s infinite; }
-.admin-status__dot--connected { background: var(--admin-ok); }
-.admin-status__dot--error { background: var(--admin-err); }
-.admin-status__dot--disconnected { background: var(--admin-muted); }
-
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-
-.admin-status__label { font-weight: 600; }
-.admin-status__spacer { flex: 1; }
-.admin-status__meta { color: var(--admin-muted); font-variant-numeric: tabular-nums; }
-
-/* --- Layout -------------------------------------------------------------- */
+/* ── Layout ─────────────────────────────────────────────────── */
 .admin-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.admin-body {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   align-items: start;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
 }
 
 .admin-main {
   min-width: 0;
 }
 
-.admin-sidebar {
+/* ── Top bar ────────────────────────────────────────────────── */
+.admin-topbar {
   position: sticky;
-  top: 41px;
-  height: calc(100vh - 41px);
-  overflow-y: auto;
-  border-left: 1px solid var(--admin-border);
-  background: var(--admin-panel-bg);
-  padding: var(--admin-gap);
+  top: 0;
+  z-index: 20;
   display: flex;
-  flex-direction: column;
-  gap: var(--admin-gap);
+  align-items: center;
+  gap: 16px;
+  height: var(--topbar-h);
+  padding: 0 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-topbar);
 }
 
-/* --- Canvas -------------------------------------------------------------- */
+.admin-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.admin-brand__mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
+  flex: 0 0 auto;
+}
+.admin-brand__word {
+  font-weight: 700;
+}
+.admin-brand__sub {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Connection status → clean badge (shell-owned DOM, CSS only) ──
+   Markup: <header.admin-status>[dot][label][spacer][meta origin][meta scale]].
+   Restyled into a pill badge, pushed to the right of the top bar, with the
+   raw origin/scale demoted to tiny muted metadata. */
+.admin-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 13px;
+  position: static;
+}
+.admin-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.15);
+}
+.admin-status__dot--connecting {
+  background: var(--warn);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  animation: pulse 1s infinite;
+}
+.admin-status__dot--connected {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+.admin-status__dot--error {
+  background: var(--err);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+}
+.admin-status__dot--disconnected {
+  background: var(--muted);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* The dot + label together read as one status pill. */
+.admin-status__dot,
+.admin-status__label {
+  order: 0;
+}
+.admin-status__label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  padding-right: 4px;
+}
+/* Collapse the shell's flex spacer — the badge is already right-aligned. */
+.admin-status__spacer {
+  display: none;
+}
+/* Demote origin/scale to tiny muted metadata, separated by a hairline. */
+.admin-status__meta {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  padding-left: 12px;
+  margin-left: 4px;
+  border-left: 1px solid var(--border);
+}
+.admin-status__meta + .admin-status__meta {
+  padding-left: 8px;
+  margin-left: 0;
+  border-left: 0;
+}
+
+/* ── Canvas ─────────────────────────────────────────────────── */
 .admin-canvas-scroll {
-  padding: 32px;
+  padding: 40px;
   overflow: auto;
 }
-
 .admin-canvas {
   position: relative;
-  /* Responsive on-screen width: fills the column but never upscales past the
-     design width. `useStardustHost` reads this width to derive `scale`. */
   width: 100%;
-  max-width: 1024px; /* == DESIGN_WIDTH */
+  max-width: 1024px;
+  margin: 0 auto;
   overflow: hidden;
   background: #fff;
-  border-radius: var(--admin-radius);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-canvas);
 }
-
 .admin-canvas__iframe {
-  /* Absolute so the untransformed (design-width) layout box does not stretch
-     the responsive canvas; the scale transform shrinks it to fit. */
   position: absolute;
   top: 0;
   left: 0;
@@ -119,73 +237,47 @@ body {
   inset: 0;
   pointer-events: none;
 }
-
-/* Overlay children re-enable pointer events (SIFR-T-0010). */
 .admin-overlay-layer > * {
   pointer-events: auto;
 }
 
-/* --- Styled overlay primitives (SIFR-T-0010) ----------------------------- */
+/* ── Overlay primitives (functional — indigo accent) ────────── */
 .ov-group {
   pointer-events: none;
 }
 .ov-group > * {
   pointer-events: auto;
 }
-
-/* TargetAreaOverlay: a subtle drop area, highlighted on hover / drag-over. */
 .ov-target {
-  border: 1.5px dashed rgba(99, 102, 241, 0.45);
-  border-radius: 6px;
+  border: 1.5px dashed rgba(79, 70, 229, 0.4);
+  border-radius: 8px;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .ov-target:hover {
-  background: var(--admin-accent-soft);
-  border-color: var(--admin-accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 .ov-target--container {
   border-style: solid;
-  border-color: rgba(236, 72, 153, 0.4);
+  border-color: rgba(124, 58, 237, 0.4);
 }
 .ov-target--selected {
-  outline: 2px solid var(--admin-accent);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
-/* --- Drop-zone / insertion indicators (iframe-adapter 0.1.1) --------------
-   The 0.1.1 `TargetAreaOverlay` renders a stable data-attr contract that the
-   demo owns the look of (primitives are unstyled). Ported from the original
-   builder App.css (`.target-drag` tint + `.ui.dragging` 8px insertion bar).
-
-   - `[data-target-id][data-dragover]` — whole-area tint while a block is
-     dragged over the target (original: rgba(0,0,0,0.196); harmonized here with
-     the indigo `.ov-target` dashed style).
-   - `[data-drop-area]` — the lib-sized min-hit-area layer; left untouched so it
-     doesn't visually break the target box (transparent, no border/bg).
-   - `[data-drop-zone]` (top/bottom/empty, each `data-drop-index`) — faint base
-     state (opacity .2), matching the original idle `.target-drag .ui`.
-   - `[data-drop-zone][data-drop-active]` — the ACTIVE insertion bar: an 8px
-     accent bar centered on the boundary (margin -4px), opacity 1. The lib sets
-     each zone's `height`/`top` inline for hit-testing, so the visible 8px bar
-     is drawn with a `::after` pseudo-element rather than overriding the inline
-     box; `empty` fills its area instead of a bar. */
 [data-target-id][data-dragover] {
-  background: var(--admin-accent-soft);
-  border-color: var(--admin-accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
-
 [data-drop-area] {
-  /* Sized by the library; keep it visually inert. */
   background: transparent;
   border: 0;
 }
-
 [data-drop-zone] {
   opacity: 0.2;
   transition: opacity 0.1s ease;
 }
-
-/* Active insertion bar for boundary zones (top/bottom). */
 [data-drop-zone][data-drop-active] {
   opacity: 1;
 }
@@ -196,7 +288,7 @@ body {
   left: 0;
   width: 100%;
   height: 8px;
-  background: var(--admin-accent);
+  background: var(--accent);
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
   pointer-events: none;
@@ -209,32 +301,27 @@ body {
   bottom: 0;
   margin-bottom: -4px;
 }
-
-/* Empty target: the single full-area zone fills instead of drawing a bar. */
 [data-drop-zone="empty"][data-drop-active] {
-  background: var(--admin-accent-soft);
-  outline: 2px solid var(--admin-accent);
+  background: var(--accent-soft);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
-/* Item hit-box that the library renders inside the target (drag source). */
 .ov-item-hit {
   cursor: grab;
 }
-
-/* Selection chrome per content item (layered above the hit box). */
 .ov-item {
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: box-shadow 0.12s ease;
 }
 .ov-item:hover {
-  box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.6);
+  box-shadow: inset 0 0 0 2px rgba(79, 70, 229, 0.55);
 }
 .ov-item--selected {
-  box-shadow: inset 0 0 0 2px var(--admin-selected);
-  background: rgba(236, 72, 153, 0.08);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: rgba(79, 70, 229, 0.07);
 }
 
 .ov-delete {
@@ -244,7 +331,7 @@ body {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--admin-err);
+  background: var(--err);
   color: #fff;
   font-size: 15px;
   line-height: 22px;
@@ -252,135 +339,383 @@ body {
   opacity: 0;
   transition: opacity 0.12s ease;
   z-index: 2;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
 }
 .ov-group:hover .ov-delete {
-  opacity: 0.92;
+  opacity: 0.95;
 }
 .ov-delete:hover {
   opacity: 1;
 }
 
-/* --- Sidebar panels ------------------------------------------------------ */
+/* ── Sidebar rail ───────────────────────────────────────────── */
+.admin-sidebar {
+  position: sticky;
+  top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto;
+  border-left: 1px solid var(--rail-border);
+  background: var(--rail);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--rail-fg);
+}
+.admin-sidebar::-webkit-scrollbar {
+  width: 10px;
+}
+.admin-sidebar::-webkit-scrollbar-thumb {
+  background: var(--rail-border);
+  border-radius: 999px;
+  border: 3px solid var(--rail);
+}
+
+/* ── Cards (panels) ─────────────────────────────────────────── */
 .panel {
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid var(--admin-border);
-  border-radius: var(--admin-radius);
-  padding: 14px;
+  background: var(--rail-card);
+  border: 1px solid var(--rail-border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 .panel__title {
-  margin: 0 0 6px;
-  font-size: 13px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--admin-muted);
+  letter-spacing: 0.09em;
+  color: var(--rail-muted);
 }
 .panel__hint {
   margin: 0;
-  font-size: 13px;
-  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--rail-muted);
 }
+.panel__chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rail-accent);
+  background: var(--rail-accent-soft);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  border-radius: 999px;
+  padding: 2px 9px;
+  text-transform: capitalize;
+}
+
+.panel__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 14px 8px 8px;
+}
+.panel__empty-icon {
+  font-size: 20px;
+  color: var(--rail-accent);
+  opacity: 0.7;
+}
+
 .panel__meta {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 2px 10px;
-  margin: 0 0 12px;
-  font-size: 12px;
+  gap: 3px 10px;
+  margin: 0;
+  font-size: 11px;
 }
 .panel__meta dt {
-  color: var(--admin-muted);
+  color: var(--rail-muted);
 }
 .panel__meta dd {
   margin: 0;
   font-family: ui-monospace, monospace;
   word-break: break-all;
+  color: var(--rail-fg);
 }
+.panel__meta--footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rail-border);
+  opacity: 0.7;
+}
+
 .panel__field {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12.5px;
+  color: var(--rail-fg);
+}
+.panel__field + .panel__field {
+  margin-top: 12px;
+}
+.panel__field > span {
+  font-weight: 600;
+  color: var(--rail-muted);
 }
 .panel__field textarea,
-.panel__field input {
+.panel__field input[type="text"],
+.panel__field input[type="number"] {
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--admin-border);
-  background: #0b1220;
-  color: var(--admin-panel-fg);
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rail-border);
+  background: var(--rail-2);
+  color: var(--rail-fg);
   font: inherit;
   resize: vertical;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.panel__field textarea::placeholder,
+.panel__field input::placeholder {
+  color: var(--rail-muted);
 }
 .panel__field textarea:focus,
 .panel__field input:focus {
-  outline: 2px solid var(--admin-accent);
-  border-color: transparent;
+  outline: none;
+  border-color: var(--rail-accent);
+  box-shadow: 0 0 0 3px var(--rail-accent-soft);
+}
+.panel__field input[type="color"] {
+  width: 44px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--rail-border);
+  border-radius: var(--radius-sm);
+  background: var(--rail-2);
+  cursor: pointer;
 }
 
+/* ── Block palette (shell-owned DOM, CSS only) ──────────────── */
 .palette {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 .palette__item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--admin-border);
-  border-radius: 6px;
-  background: #0b1220;
+  padding: 11px 12px;
+  border: 1px solid var(--rail-border);
+  border-radius: var(--radius-sm);
+  background: var(--rail-2);
   cursor: grab;
   font-size: 13px;
+  font-weight: 500;
+  color: var(--rail-fg);
   user-select: none;
+  transition: border-color 0.12s ease, background 0.12s ease,
+    transform 0.08s ease;
 }
 .palette__item:hover {
-  border-color: var(--admin-accent);
+  border-color: var(--rail-accent);
+  background: var(--rail-card-hover);
 }
+.palette__item:active {
+  cursor: grabbing;
+  transform: scale(0.99);
+}
+/* Turn the raw type tag into an icon chip. */
 .palette__type {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--admin-accent);
-  border: 1px solid var(--admin-accent);
-  border-radius: 4px;
-  padding: 1px 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 0; /* hide the raw type text; icon drawn via ::before */
+  color: var(--rail-accent);
+  background: var(--rail-accent-soft);
+  border: 1px solid rgba(129, 140, 248, 0.28);
+  border-radius: 7px;
+  flex: 0 0 auto;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 0;
+}
+.palette__item[data-block-type="text"] .palette__type::before {
+  content: "T";
+  font-size: 14px;
+  font-weight: 800;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.palette__item[data-block-type="image"] .palette__type::before {
+  content: "◈";
+  font-size: 14px;
+}
+/* Drag affordance dots on the right. */
+.palette__item::after {
+  content: "⋮⋮";
+  margin-left: auto;
+  color: var(--rail-muted);
+  font-size: 12px;
+  letter-spacing: -2px;
+  opacity: 0.6;
 }
 
-/* --- Versioning controls ------------------------------------------------- */
-.version-controls {
-  background: var(--admin-panel-bg);
-  border: 1px solid var(--admin-border);
-  border-radius: var(--admin-radius);
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.version-controls__state {
-  margin: 0;
-  font-size: 12px;
-  color: var(--admin-muted);
-}
-.version-controls__row {
-  display: flex;
-  gap: 8px;
-}
-.version-controls button {
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   flex: 1 1 auto;
-  padding: 7px 10px;
+  padding: 9px 12px;
+  font: inherit;
   font-size: 13px;
-  color: var(--admin-panel-fg);
-  background: var(--admin-accent-soft);
-  border: 1px solid var(--admin-border);
-  border-radius: 6px;
+  font-weight: 600;
+  color: var(--rail-fg);
+  background: var(--rail-2);
+  border: 1px solid var(--rail-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
-.version-controls button:hover:not(:disabled) {
-  border-color: var(--admin-accent);
+.btn:hover:not(:disabled) {
+  border-color: var(--rail-accent);
+  background: var(--rail-card-hover);
 }
-.version-controls button:disabled {
+.btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+.btn--block {
+  width: 100%;
+}
+.btn--primary {
+  color: #fff;
+  background: var(--accent);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+}
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: transparent;
+}
+.btn--icon {
+  flex: 0 0 auto;
+  width: 34px;
+  padding: 6px 0;
+  font-size: 18px;
+  line-height: 1;
+}
+.btn-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ── Versioning ─────────────────────────────────────────────── */
+.version-controls__state {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--rail-muted);
+  font-variant-numeric: tabular-nums;
+}
+.version-controls .btn--primary {
+  margin-top: 12px;
+}
+.vc-pill {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 9px;
+  border: 1px solid transparent;
+}
+.vc-pill--draft {
+  color: var(--warn);
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.vc-pill--live {
+  color: var(--rail-accent);
+  background: var(--rail-accent-soft);
+  border-color: rgba(129, 140, 248, 0.3);
+}
+.vc-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rail-border);
+}
+.vc-nav__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rail-muted);
+}
+.vc-nav__buttons {
+  display: inline-flex;
+  gap: 6px;
+}
+
+/* ── Presence ───────────────────────────────────────────────── */
+.presence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ok);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.presence-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: pulse 1.6s infinite;
+}
+.presence-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.presence-status__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rail-accent);
+  background: var(--rail-accent-soft);
+  border: 1px solid rgba(129, 140, 248, 0.28);
+  flex: 0 0 auto;
+}
+.presence-status__text {
+  font-size: 12.5px;
+  color: var(--rail-fg);
+  line-height: 1.4;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 960px) {
+  .admin-body {
+    grid-template-columns: 1fr;
+  }
+  .admin-sidebar {
+    position: static;
+    height: auto;
+    border-left: 0;
+    border-top: 1px solid var(--rail-border);
+  }
 }
