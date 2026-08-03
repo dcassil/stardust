@@ -5,8 +5,25 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { createDemoContentStore, VceContentStoreAdapter } from ".";
+import { VceContentStoreAdapter } from "@stardust-cms/vce-adapter";
+import {
+  cmsContentPayloadPolicy,
+  type CmsContentTypeMap,
+} from "@stardust-cms/vce-adapter/cms-content";
+import type { SeedItem } from "@stardust-cms/dashboard";
+import { createDemoContentStore } from ".";
 import { SEED_CONTENT } from "../content-model.js";
+
+/**
+ * Build the packaged adapter with the demo's CmsContent policy (no persistence),
+ * so the low-level cases can seed arbitrary content the way the demo composition
+ * root does. `createDemoContentStore()` is exercised separately for the wired path.
+ */
+function makeStore(
+  seed: readonly SeedItem[],
+): VceContentStoreAdapter<CmsContentTypeMap> {
+  return new VceContentStoreAdapter(seed, { policy: cmsContentPayloadPolicy });
+}
 
 describe("VceContentStoreAdapter", () => {
   it("seeds the demo content and projects it as ContentPayload[]", () => {
@@ -69,7 +86,7 @@ describe("VceContentStoreAdapter", () => {
     // Pre-fix this silently failed (item landed in the wrong slot); the half-step
     // fix sorts the moved item strictly into the requested slot. Exercises the
     // full HostContentOp("move") → moveContent path.
-    const store = new VceContentStoreAdapter([
+    const store = makeStore([
       { targetId: "hero", index: 0, content: { id: "a-top", type: "text", value: "A" } },
       { targetId: "hero", index: 1, content: { id: "z-bottom", type: "text", value: "Z" } },
     ]);
@@ -131,7 +148,7 @@ describe("VceContentStoreAdapter", () => {
   });
 
   it("materializeVersion surfaces earlier versions read-only", () => {
-    const store = new VceContentStoreAdapter(SEED_CONTENT);
+    const store = makeStore(SEED_CONTENT);
     const heroFirst = store.getDraft().find((p) => p.targetId === "hero")!;
     store.apply({
       kind: "edit",

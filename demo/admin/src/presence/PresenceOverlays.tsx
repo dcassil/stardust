@@ -39,14 +39,14 @@
  * the whole target area.
  */
 
-import { useEffect, type ReactElement } from "react";
+import { type ReactElement } from "react";
 import type { HostPointer } from "@stardust-cms/iframe-adapter/host";
 import {
   ColabStage,
-  Cursor,
   RemoteCursors,
   usePresence,
   useInteraction,
+  useCursorSource,
 } from "colab-ui/react";
 import {
   EditLock,
@@ -109,8 +109,20 @@ function StageContents({
   selfId,
   pointer,
 }: StageContentsProps): ReactElement {
-  // Publish the iframe-sourced pointer as the local normalized cursor sample.
-  useIframePointerCapture(pointer);
+  // Publish the iframe-sourced pointer as the local normalized cursor sample via
+  // colab-ui's packaged `useCursorSource`. A non-null point broadcasts cursor
+  // presence; `null` (pointer left the iframe) broadcasts the protocol GONE signal
+  // so remotes REMOVE this participant's cursor. This replaces the demo's old
+  // `CURSOR_GONE = {x:-1,y:-1}` off-screen sentinel — the packaged hook uses the
+  // real gone action, so a stale cursor no longer lingers or floats off-canvas.
+  //
+  // COORDINATES: `pointer` (from `OverlayChromeParts.pointer`) is already the
+  // iframe-captured value, NORMALIZED 0..1 in the iframe design space
+  // (transform-neutral), structurally a `CursorPoint`. `<RemoteCursors>` re-projects
+  // it onto its stage box, so it is fed DIRECTLY — no stage multiply, no host-rect
+  // math — and covers the WHOLE page (nav, hero, footer, gaps), scale/scroll
+  // independent.
+  useCursorSource(pointer);
 
   return (
     <>
@@ -118,47 +130,6 @@ function StageContents({
       <EditLockLayer targets={targets} selfId={selfId} />
     </>
   );
-}
-
-/**
- * A point far off the stage. When the local pointer LEAVES the iframe
- * (`pointer === null`), we publish this sentinel so `<RemoteCursors>` renders the
- * peer's cursor well outside the visible canvas box — the effective "no cursor"
- * for peers. The `colab` `Cursor` interaction is send-only (its wire protocol
- * carries a `{x,y}` point with no clear/remove message, and its reducer keeps the
- * last point per participant until they leave the room), so a stale cursor would
- * otherwise freeze in place on leave. Projecting `point × box` puts this far
- * negative, off-screen, which is the intended "pointer gone" appearance.
- */
-const CURSOR_GONE = { x: -1, y: -1 } as const;
-
-/**
- * Publish the IFRAME-SOURCED pointer as the local `colab` `Cursor` sample.
- *
- * SOURCE: `OverlayChromeParts.pointer` — the pointer the embedded site captures
- * over its OWN document (via `publishPointer` / `cms/pointer`) and the host
- * forwards NORMALIZED 0..1 in the iframe's DESIGN space. This replaces the old
- * document-level `pointermove` capture, which only saw the pointer over the
- * editing-overlay content boxes — pointer events over the cross-origin iframe body
- * (hero, nav, footer, gaps) go to the IFRAME's document, never the admin's, so the
- * host never saw them. The iframe now captures its own pointer over the WHOLE
- * page, so the colab cursor tracks everywhere.
- *
- * COORDINATES: the value is already normalized 0..1 in the iframe design space
- * (transform-neutral), exactly what the `Cursor` interaction expects, and exactly
- * what `<RemoteCursors>` re-projects onto its stage box. So we feed it DIRECTLY —
- * no stage multiply, no host-rect math. Being design-space normalized, it is
- * inherently scale- and scroll-independent (the whole point of the fix).
- *
- * LEAVE: when `pointer` is `null` the pointer left the iframe; we publish
- * {@link CURSOR_GONE} so the peer's cursor moves off-screen (see its doc).
- */
-function useIframePointerCapture(pointer: HostPointer): void {
-  const { send } = useInteraction(Cursor);
-
-  useEffect(() => {
-    send(pointer ?? CURSOR_GONE);
-  }, [pointer, send]);
 }
 
 interface EditLockLayerProps {

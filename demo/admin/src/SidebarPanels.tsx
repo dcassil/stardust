@@ -16,18 +16,21 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Palette, useHostSelection } from "@stardust-cms/dashboard";
+import { useEditLock } from "colab-ui/react";
 import { useEditable } from "./editableContext";
 import { DEMO_BLOCK_TYPES } from "./blockTypes";
 import { VersionControls } from "./VersionControls";
 import { EditPanel } from "./EditPanel";
 import { StylePanel } from "./StylePanel";
 import { PRESENCE_ENABLED } from "./presence/config";
-import {
-  usePublishEditLock,
-  useContentLock,
-  type ContentLock,
-} from "./presence/usePresenceSession";
+import { contentScopeId } from "./presence/usePresenceSession";
 import { PresenceIndicator } from "./presence/PresenceIndicator";
+
+/** The per-item lock state the panels consume to gate editing read-only. */
+export interface ContentLock {
+  lockedByRemote: boolean;
+  holderName: string | null;
+}
 
 const NO_LOCK: ContentLock = { lockedByRemote: false, holderName: null };
 
@@ -139,22 +142,21 @@ function PresenceSidebar({
   selfId,
   onLockChange,
 }: PresenceSidebarProps): ReactNode {
-  usePublishEditLock(
-    { targetId: selectedTargetId, contentId: selectedContentId },
-    selfId,
-  );
-
-  const { lockedByRemote, holderName } = useContentLock(
-    selectedTargetId,
-    selectedContentId,
+  // colab-ui's packaged edit-lock hook OWNS the whole lifecycle: it cooperatively
+  // acquires the scope (when free), never steals, safety-clears on reload/leave
+  // and after idle, and resolves the current remote holder. It both publishes the
+  // local lock AND reports whether a remote holds it — replacing the demo's
+  // separate `usePublishEditLock` + `useContentLock`.
+  const { lockedByRemote, holder } = useEditLock(
+    contentScopeId(selectedTargetId, selectedContentId),
     selfId,
   );
 
   // Push the resolved lock state up to `SidebarPanels`. Effect (not render) so we
   // never call a parent setter during our own render.
   useEffect(() => {
-    onLockChange({ lockedByRemote, holderName });
-  }, [onLockChange, lockedByRemote, holderName]);
+    onLockChange({ lockedByRemote, holderName: holder });
+  }, [onLockChange, lockedByRemote, holder]);
 
   // On unmount (presence flag flips off, unlikely) clear the gate so panels
   // don't stay stuck read-only.
