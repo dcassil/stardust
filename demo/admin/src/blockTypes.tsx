@@ -11,6 +11,7 @@
 import type { ReactNode } from "react";
 import type { BlockType } from "@stardust-cms/dashboard";
 import type { CmsContent } from "@stardust-cms/iframe-adapter/protocol";
+import { ImageField } from "./ImageField";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/480x240/6366f1/ffffff?text=New+image";
 
@@ -38,17 +39,12 @@ const imageBlock: BlockType<"image"> = {
   label: "Image",
   defaultValue: () => PLACEHOLDER_IMAGE,
   renderField: (content: CmsContent, onEdit): ReactNode => (
-    <label className="panel__field">
-      <span>Image URL</span>
-      <input
-        type="text"
-        data-testid="panel-image"
-        value={content.value ?? ""}
-        onChange={(e) => {
-          onEdit({ value: e.target.value });
-        }}
-      />
-    </label>
+    <ImageField
+      content={content}
+      onEdit={(patch) => {
+        onEdit(patch);
+      }}
+    />
   ),
 };
 

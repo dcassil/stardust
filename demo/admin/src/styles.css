@@ -549,6 +549,29 @@ body {
   background: var(--rail-2);
   cursor: pointer;
 }
+/* Source picker + secondary controls for the image block field. */
+.panel__field .panel__select,
+.panel__field input[type="file"] {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rail-border);
+  background: var(--rail-2);
+  color: var(--rail-fg);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.panel__field input[type="file"] {
+  cursor: pointer;
+  padding: 7px 11px;
+}
+.panel__field .panel__select:focus,
+.panel__field input[type="file"]:focus {
+  outline: none;
+  border-color: var(--rail-accent);
+  box-shadow: 0 0 0 3px var(--rail-accent-soft);
+}
 
 /* ── Block palette (shell-owned DOM, CSS only) ──────────────── */
 .palette {

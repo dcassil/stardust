@@ -11,14 +11,19 @@
 
 import { SEED_CONTENT } from "../content-model.js";
 import { VceContentStoreAdapter } from "./VceContentStoreAdapter.js";
+import { loadPersistedSeed } from "./persistence.js";
 
 export { VceContentStoreAdapter } from "./VceContentStoreAdapter.js";
+export { clearPersistedContent } from "./persistence.js";
 
 /**
- * Build the demo's default store, seeded with the shared {@link SEED_CONTENT} and
- * backed by the versioned content engine. The seed is published once so it is the
- * initial LIVE content; edits then accrue in a fresh draft until published.
+ * Build the demo's default store. The demo has no backend, so content is
+ * persisted to `localStorage`: if a previous session was saved we re-seed from
+ * that working draft, otherwise we fall back to the shared {@link SEED_CONTENT}.
+ * Either way the seed is published once so it is the initial LIVE content; edits
+ * then accrue in a fresh draft (persisted after each mutation) until published.
  */
 export function createDemoContentStore(): VceContentStoreAdapter {
-  return new VceContentStoreAdapter(SEED_CONTENT);
+  const persisted = loadPersistedSeed();
+  return new VceContentStoreAdapter(persisted ?? SEED_CONTENT, { persist: true });
 }

@@ -70,6 +70,7 @@ import {
   type Version,
 } from "versioned-content-engine";
 import type { SeedItem } from "../content-model.js";
+import { persistSnapshot } from "./persistence.js";
 import {
   asCollectionId,
   asTargetId,
@@ -94,12 +95,20 @@ export class VceContentStoreAdapter implements ContentStoreAdapter {
    */
   #viewVersion: number | null = null;
 
+  /**
+   * When true, every mutation (and publish) snapshots the working draft to
+   * `localStorage` so content survives a reload. The demo has no backend, so this
+   * is how edits, inserts, and uploaded images persist. See {@link persistSnapshot}.
+   */
+  readonly #persist: boolean;
+
   /** Effect deps threaded into every op, always at the CURRENT clock. */
   get #deps(): OperationDeps {
     return { idStrategy: this.#idStrategy, clock: this.#clock };
   }
 
-  constructor(seed: readonly SeedItem[]) {
+  constructor(seed: readonly SeedItem[], options?: { persist?: boolean }) {
+    this.#persist = options?.persist ?? false;
     this.#clock = createDefaultVersionClock(0);
     this.#idStrategy = createDefaultIdStrategy("demo-");
     // Seed every item as a create at the draft version, then publish once so the
@@ -246,6 +255,8 @@ export class VceContentStoreAdapter implements ContentStoreAdapter {
         // No content mutation; return the current snapshot unchanged.
         break;
     }
+    // Persist the working draft after any actual mutation so a reload restores it.
+    if (op.kind !== "select") this.#persistDraft();
     return this.getSnapshot();
   }
 
@@ -253,6 +264,7 @@ export class VceContentStoreAdapter implements ContentStoreAdapter {
     const result = publish(this.#state, this.#clock);
     this.#state = result.state;
     this.#clock = result.clock;
+    this.#persistDraft();
     // After publish, the editor's draft is empty-diff above the new live; return
     // the new live projection so the caller re-injects the published content.
     return this.getLive();
@@ -261,6 +273,15 @@ export class VceContentStoreAdapter implements ContentStoreAdapter {
   materializeVersion(version: string): ContentSnapshot {
     const v = Number(version) as unknown as Version;
     return project(materialize(this.#state, v));
+  }
+
+  /**
+   * Snapshot the current working draft to `localStorage` (no-op when persistence
+   * is disabled). Uses the draft projection — not `getSnapshot()` — so a pinned
+   * historical view never overwrites the real working content.
+   */
+  #persistDraft(): void {
+    if (this.#persist) persistSnapshot(this.getDraft());
   }
 
   /** Locate a collection's current draft record (winner) in a target. */
