@@ -1,14 +1,14 @@
 /**
  * `PresenceIndicator` — small sidebar badge shown only when presence is enabled.
  *
- * Reflects how many OTHER participants are currently present (via the `colab`
- * `usePresence` hook, which returns the REMOTE roster — self excluded) and
+ * Reflects how many OTHER participants are currently present (via colab-ui's
+ * packaged `usePresenceCount`, which counts the roster excluding `selfId`) and
  * reminds the user to open a second tab to see cursors + locks. Rendered ONLY on
  * the flag-on path, from inside `<ColabProvider>`.
  */
 
 import type { ReactNode } from "react";
-import { usePresence } from "colab-ui/react";
+import { usePresenceCount } from "colab-ui/react";
 
 export interface PresenceIndicatorProps {
   /** The local participant id, excluded from the "others" count. */
@@ -16,10 +16,9 @@ export interface PresenceIndicatorProps {
 }
 
 export function PresenceIndicator({ selfId }: PresenceIndicatorProps): ReactNode {
-  const participants = usePresence();
-  // colab-server's ROSTER includes the local participant, so exclude self here
-  // (the "others here" count is remote-only).
-  const others = participants.filter((p) => p.id !== selfId).length;
+  // colab-server's ROSTER includes the local participant; `usePresenceCount`
+  // excludes `selfId`, so this is the remote-only "others here" count.
+  const others = usePresenceCount(selfId);
 
   return (
     <section className="panel" data-testid="presence-indicator">

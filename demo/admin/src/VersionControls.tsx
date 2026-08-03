@@ -6,18 +6,15 @@
  * It is a child of `HostShell`, so it lives inside the shell's `StoreProvider`
  * and reads the injected {@link VceContentStoreAdapter} via `useContentStore()`.
  *
- * VERSION-NAV STILL NEEDS AN EXPLICIT RE-INJECT (dashboard 0.1.2 does NOT cover
- * it): the shell re-injects on every change of the `StoreProvider` snapshot, and
- * that snapshot only advances when an op flows through `useContentStore().apply`.
- * Publish / view-live / prev / next mutate the adapter's clock / view pointer
- * DIRECTLY (`vce.publish()` / `vce.setViewVersion()`), bypassing `apply`, so the
- * provider's snapshot — and hence the shell's re-inject — does NOT fire on its
- * own. To push the newly-pinned projection into the iframe we therefore still
- * dispatch a harmless `select` op through `apply` after each nav: `apply` returns
- * a fresh `getSnapshot()` (draft, live, or the pinned historical version), which
- * the shell re-injects. This is the MINIMAL mechanism kept for version-nav — the
- * generic `HostBridgeContext`/`useReinject` plumbing the edit/delete paths used
- * is gone.
+ * VERSION-NAV RE-INJECTS AUTOMATICALLY (dashboard 0.1.8 + vce-adapter
+ * `subscribe()`): publish / view-live / prev / next mutate the adapter's clock /
+ * view pointer DIRECTLY (`vce.publish()` / `vce.setViewVersion()`), bypassing
+ * `apply`. The packaged {@link VceContentStoreAdapter} notifies its subscribers
+ * after every snapshot-changing operation, and the dashboard `StoreProvider`
+ * subscribes and re-reads `getSnapshot()` on each notification — so the freshly
+ * pinned projection re-injects into the iframe WITHOUT any synthetic `select`
+ * op. The old `REINJECT_TARGET` hack that dispatched a no-op `select` purely to
+ * force a re-inject is gone.
  *
  * Controls:
  *  - **Publish** — `store.publish()` advances live; then re-inject so the iframe
@@ -27,35 +24,29 @@
  *  - **◀ / ▶** — step through historical versions (0..live) read-only.
  */
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, type ReactNode } from "react";
 import { useContentStore } from "@stardust-cms/dashboard";
-import type { VceContentStoreAdapter } from "@demo/shared/store";
+import type { DemoContentStore } from "@demo/shared/store";
 import { useEditable } from "./editableContext";
 
-/** A target id guaranteed to exist in the seed — used to fire a re-inject `select`. */
-const REINJECT_TARGET = "hero";
-
 export function VersionControls(): ReactNode {
-  const contentStore = useContentStore();
-  const { store } = contentStore;
-  const vce = store as VceContentStoreAdapter;
-  const [, force] = useState(0);
+  const { store, snapshot } = useContentStore();
+  // Narrow to the demo's concrete adapter for its versioning capabilities
+  // (`liveVersion` / `viewVersion` / `publish` / `setViewVersion`), which the
+  // generic `ContentStoreAdapter` seam exposes only optionally.
+  const vce = store as DemoContentStore;
   const { setEditable } = useEditable();
 
-  // Re-inject the store's current snapshot into the iframe by dispatching a
-  // no-op `select` op through the shell's store binding. `apply` returns a fresh
-  // `getSnapshot()` (draft, live, or a pinned version) which the shell re-injects
-  // via `cms/sendElements`. `select` preserves the view pointer (see the
-  // adapter's `apply`), so the pinned version survives. `force` re-renders this
-  // control so its state readouts (live/viewing) refresh.
-  // After each view change we (a) re-inject the projection, (b) re-render this
-  // control, and (c) publish the new editable state to the shared context so the
-  // WHOLE editor (HostShell / Overlays / Palette) reacts, not just this control.
-  const reinject = useCallback(() => {
-    contentStore.apply({ kind: "select", targetId: REINJECT_TARGET });
-    force((n) => n + 1);
+  // The adapter's `subscribe()` seam re-injects the freshly pinned projection
+  // into the iframe automatically (dashboard 0.1.8 `StoreProvider`), and the
+  // provider's `snapshot` state change re-renders this control — so after a view
+  // change we only need to sync the shared editable flag so the WHOLE editor
+  // (HostShell / Overlays / Palette) reacts to draft-vs-preview, not just this
+  // control. `snapshot` is read below purely to depend on provider re-renders.
+  void snapshot;
+  const syncEditable = useCallback(() => {
     setEditable(vce.viewVersion() === null);
-  }, [contentStore, vce, setEditable]);
+  }, [vce, setEditable]);
 
   const live = vce.liveVersion();
   const viewing = vce.viewVersion();
@@ -64,30 +55,30 @@ export function VersionControls(): ReactNode {
   const onPublish = useCallback(() => {
     vce.publish();
     vce.setViewVersion(null);
-    reinject();
-  }, [vce, reinject]);
+    syncEditable();
+  }, [vce, syncEditable]);
 
   const onViewLive = useCallback(() => {
     vce.setViewVersion(live);
-    reinject();
-  }, [vce, live, reinject]);
+    syncEditable();
+  }, [vce, live, syncEditable]);
 
   const onEditDraft = useCallback(() => {
     vce.setViewVersion(null);
-    reinject();
-  }, [vce, reinject]);
+    syncEditable();
+  }, [vce, syncEditable]);
 
   const onPrev = useCallback(() => {
     const current = viewing ?? live;
     vce.setViewVersion(Math.max(0, current - 1));
-    reinject();
-  }, [vce, viewing, live, reinject]);
+    syncEditable();
+  }, [vce, viewing, live, syncEditable]);
 
   const onNext = useCallback(() => {
     const current = viewing ?? live;
     vce.setViewVersion(Math.min(live, current + 1));
-    reinject();
-  }, [vce, viewing, live, reinject]);
+    syncEditable();
+  }, [vce, viewing, live, syncEditable]);
 
   return (
     <section className="panel version-controls" data-testid="version-controls">
