@@ -9,7 +9,7 @@
  * automatically — the old re-inject bridge workaround is gone.
  */
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   useContentStore,
   findBlockType,
@@ -49,6 +49,33 @@ export function EditPanel({
     );
   }, [snapshot, selectedTargetId, selectedContentId]);
 
+  // Auto-focus + select-all when a FRESHLY-ADDED block becomes selected, so the
+  // user can immediately type over the block's placeholder default (e.g. "New
+  // text block"). A newly-inserted block is auto-selected by the shell and still
+  // carries its block type's `defaultValue()` — we key off exactly that, which is
+  // resilient to the snapshot- and selection-state commits landing in either
+  // order. We only act once per selection (tracked by content id) so typing that
+  // reduces the value back to the default doesn't re-grab focus. The field
+  // input/textarea is queried from the DOM because the actual control comes from
+  // the block type's `renderField`.
+  const panelRef = useRef<HTMLElement | null>(null);
+  const focusedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selected || lockedByRemote) return;
+    const { contentId, content } = selected;
+    if (focusedIdRef.current === contentId) return;
+    const placeholder = findBlockType(blockTypes, content.type)?.defaultValue?.();
+    if (placeholder === undefined || (content.value ?? "") !== placeholder) return;
+    focusedIdRef.current = contentId;
+    const field = panelRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+      "input, textarea",
+    );
+    if (field) {
+      field.focus();
+      field.select();
+    }
+  }, [selected, blockTypes, lockedByRemote]);
+
   if (!selected) {
     return (
       <section className="panel">
@@ -83,7 +110,7 @@ export function EditPanel({
   };
 
   return (
-    <section className="panel" data-selected-id={content.id}>
+    <section className="panel" data-selected-id={content.id} ref={panelRef}>
       <div className="panel__head">
         <h2 className="panel__title">Edit</h2>
         <span className="panel__chip">{blockType?.label ?? content.type}</span>
