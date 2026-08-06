@@ -1,106 +1,74 @@
 /**
- * Demo admin — polished product-editor shell.
+ * Demo admin overrides.
  *
- * Loaded AFTER `@stardust-cms/dashboard/tokens`, so these rules win over the
- * dashboard's base `admin-*` / `ov-*` / `palette__*` / `panel__*` styling. The
- * shell owns some DOM verbatim (the connection-status header, the block palette
- * markup); those are RESTYLED here via CSS only — never re-templated.
- *
- * Design language mirrors the demo site (demo/site/src/styles.css): ink #0F172A,
- * muted #64748B, border #E2E8F0, indigo accent #4F46E5, accent-soft #EEF2FF,
- * with a refined slate-dark sidebar (#0B0E19, the site footer tone) carrying the
- * same indigo accent for a cohesive, intentional dark rail.
+ * Loaded after the dashboard token and theme layers. Keep this file limited to
+ * demo-owned brand/versioning affordances, palette/drop-zone decoration, and
+ * scoped token composition for the demo's dark sidebar rail.
  */
 
 :root {
-  /* Shared brand palette (from the site). */
-  --ink: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
+  --demo-ink: #0f172a;
+  --demo-muted: #64748b;
+  --demo-border: #e2e8f0;
+  --demo-accent: #4f46e5;
+  --demo-accent-hover: #4338ca;
+  --demo-accent-soft: #eef2ff;
+  --demo-warn: #f59e0b;
+
+  /* Demo-owned vocabulary for the hand-rolled sidebar panels/tabs/presence
+     chrome (EditPanel/StylePanel/VersionControls/tabs — the demo templates these
+     itself; they are NOT the package `sd-*` primitives, so the theme does not
+     style them). The dark-rail card palette below matches the demo's original
+     look; these panels render inside the (dark) `.sd-sidebar` region. */
   --accent: #4f46e5;
   --accent-hover: #4338ca;
   --accent-soft: #eef2ff;
-  --section: #f7f8fa;
-
-  /* Dark sidebar rail. */
-  --rail: #0b0e19;
+  --ok: #22c55e;
   --rail-2: #111527;
   --rail-card: #151a2d;
-  --rail-card-hover: #1a2035;
   --rail-fg: #e6e9f2;
   --rail-muted: #8b93ad;
   --rail-border: #232a41;
   --rail-accent: #818cf8;
   --rail-accent-soft: rgba(129, 140, 248, 0.14);
-
-  /* Status colors. */
-  --ok: #22c55e;
-  --warn: #f59e0b;
-  --err: #ef4444;
-
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow-canvas: 0 24px 60px rgba(15, 23, 42, 0.18);
-  --shadow-topbar: 0 1px 0 rgba(15, 23, 42, 0.06);
-
-  --topbar-h: 56px;
-
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  -webkit-font-smoothing: antialiased;
 }
 
-* {
-  box-sizing: border-box;
+.sd-sidebar {
+  --sd-panel-bg: #0b0e19;
+  --sd-panel-fg: #e6e9f2;
+  --sd-muted: #8b93ad;
+  --sd-border: #232a41;
+  --sd-accent: #818cf8;
+  --sd-accent-soft: rgba(129, 140, 248, 0.14);
+  --sd-surface-hover: #1a2035;
+  --sd-button-bg: #111527;
+  --sd-button-fg: #e6e9f2;
+  --sd-button-hover-bg: #1a2035;
+  --sd-field-bg: #111527;
+  --sd-field-fg: #e6e9f2;
+  --sd-field-border: #232a41;
+  --sd-label-fg: #8b93ad;
+  --sd-focus-ring: #818cf8;
 }
 
-body {
-  margin: 0;
-  background: var(--section);
-  color: var(--ink);
-}
-
+/* App-root wrapper around HostShell — the shell fills its own height, but keep
+   the min-height floor so the shell has a full-viewport box to fill. */
 .admin-root {
   min-height: 100vh;
 }
 
-/* ── Layout ─────────────────────────────────────────────────── */
-.admin-layout {
+/* The demo's own wrapper around its registered sidebar panel contribution. The
+   theme's `sd-sidebar` region owns the dark rail chrome (background/border/
+   scroll — via the `--sd-*` override above); this only supplies the inner
+   panel-stack spacing for the demo's `.panel` cards. Not layout for a region —
+   demo-owned wrapper only. */
+.admin-sidebar {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-}
-
-.admin-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  align-items: start;
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-}
-
-.admin-main {
-  min-width: 0;
-}
-
-/* ── Top bar ────────────────────────────────────────────────── */
-.admin-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  /* Span the FULL layout width above both the canvas and the sidebar (a sticky
-     flex item can otherwise shrink-wrap to its content). */
-  width: 100%;
-  flex: 0 0 auto;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  height: var(--topbar-h);
-  padding: 0 20px;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-topbar);
+  gap: 12px;
+  color: var(--rail-fg);
 }
 
 .admin-brand {
@@ -109,26 +77,28 @@ body {
   gap: 10px;
   font-weight: 700;
   font-size: 15px;
-  letter-spacing: -0.01em;
-  color: var(--ink);
+  color: var(--demo-ink);
 }
+
 .admin-brand__mark {
   width: 22px;
   height: 22px;
   border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, var(--demo-accent) 0%, #7c3aed 100%);
   box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
   flex: 0 0 auto;
 }
+
 .admin-brand__word {
   font-weight: 700;
 }
+
 .admin-brand__sub {
   font-weight: 500;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--demo-muted);
   padding: 2px 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--demo-border);
   border-radius: 999px;
   letter-spacing: 0.02em;
 }
@@ -139,275 +109,207 @@ body {
   gap: 8px;
   margin-left: auto;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--sd-muted);
 }
+
 .admin-name__label {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   font-size: 11px;
 }
+
 .admin-name__input {
   width: 140px;
   padding: 5px 9px;
   font-size: 13px;
-  color: var(--ink);
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  color: var(--sd-field-fg);
+  background: var(--sd-field-bg);
+  border: 1px solid var(--sd-field-border);
+  border-radius: var(--sd-radius);
 }
+
 .admin-name__input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  border-color: var(--sd-focus-ring);
+  box-shadow: 0 0 0 3px var(--sd-accent-soft);
 }
 
-/* ── Connection status → clean badge (shell-owned DOM, CSS only) ──
-   Markup: <header.admin-status>[dot][label][spacer][meta origin][meta scale]].
-   Restyled into a pill badge, pushed to the right of the top bar, with the
-   raw origin/scale demoted to tiny muted metadata. */
-.admin-status {
+.version-controls__state {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--sd-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.version-controls .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sd-button-fg);
+  background: var(--sd-button-bg);
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius);
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.version-controls .btn:hover:not(:disabled) {
+  border-color: var(--sd-accent);
+  background: var(--sd-button-hover-bg);
+}
+
+.version-controls .btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.version-controls .btn--block {
+  width: 100%;
+}
+
+.version-controls .btn--primary {
+  margin-top: 12px;
+  color: #ffffff;
+  background: var(--demo-accent);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+}
+
+.version-controls .btn--primary:hover:not(:disabled) {
+  background: var(--demo-accent-hover);
+  border-color: transparent;
+}
+
+.version-controls .btn--icon {
+  flex: 0 0 auto;
+  width: 34px;
+  padding: 6px 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.version-controls .btn-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.vc-pill {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 9px;
+  border: 1px solid transparent;
+}
+
+.vc-pill--draft {
+  color: var(--demo-warn);
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.vc-pill--live {
+  color: var(--sd-accent);
+  background: var(--sd-accent-soft);
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+.vc-nav {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-left: auto;
-  padding: 0;
-  background: none;
-  border: 0;
-  font-size: 13px;
-  position: static;
-}
-.admin-status__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--muted);
-  flex: 0 0 auto;
-  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.15);
-}
-.admin-status__dot--connecting {
-  background: var(--warn);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
-  animation: pulse 1s infinite;
-}
-.admin-status__dot--connected {
-  background: var(--ok);
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
-}
-.admin-status__dot--error {
-  background: var(--err);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
-}
-.admin-status__dot--disconnected {
-  background: var(--muted);
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sd-border);
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-}
-
-/* The dot + label together read as one status pill. */
-.admin-status__dot,
-.admin-status__label {
-  order: 0;
-}
-.admin-status__label {
+.vc-nav__label {
+  font-size: 12px;
   font-weight: 600;
-  font-size: 13px;
-  color: var(--ink);
-  padding-right: 4px;
-}
-/* Collapse the shell's flex spacer — the badge is already right-aligned. */
-.admin-status__spacer {
-  display: none;
-}
-/* Demote origin/scale to tiny muted metadata, separated by a hairline. */
-.admin-status__meta {
-  color: var(--muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  padding-left: 12px;
-  margin-left: 4px;
-  border-left: 1px solid var(--border);
-}
-.admin-status__meta + .admin-status__meta {
-  padding-left: 8px;
-  margin-left: 0;
-  border-left: 0;
+  color: var(--sd-muted);
 }
 
-/* ── Canvas ─────────────────────────────────────────────────── */
-.admin-canvas-scroll {
-  padding: 40px;
-  overflow: auto;
-}
-.admin-canvas {
-  position: relative;
-  width: 100%;
-  max-width: 1024px;
-  margin: 0 auto;
-  overflow: hidden;
-  background: #fff;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-canvas);
-}
-.admin-canvas__iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: block;
-  border: 0;
+.vc-nav__buttons {
+  display: inline-flex;
+  gap: 6px;
 }
 
-.admin-overlay-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.admin-overlay-layer > * {
-  pointer-events: auto;
-}
-
-/* ── Overlay primitives (functional — indigo accent) ────────── */
-.ov-group {
-  pointer-events: none;
-}
-.ov-group > * {
-  pointer-events: auto;
-}
-.ov-target {
-  border: 1.5px dashed rgba(79, 70, 229, 0.4);
-  border-radius: 8px;
-  transition: background 0.12s ease, border-color 0.12s ease;
-}
-.ov-target:hover {
-  /* Translucent so the underlying content stays legible under the highlight. */
-  background: rgba(79, 70, 229, 0.08);
-  border-color: var(--accent);
-}
-.ov-target--container {
-  border-style: solid;
-  border-color: rgba(124, 58, 237, 0.4);
-}
-.ov-target--selected {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+.sidebar-tabs__readonly {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--demo-accent-hover);
+  background: var(--demo-accent-soft);
+  border: 1px solid rgba(79, 70, 229, 0.22);
+  border-radius: var(--sd-radius);
 }
 
-[data-target-id][data-dragover] {
-  /* Drag-over highlight must not cover the content — keep it a translucent wash. */
-  background: rgba(79, 70, 229, 0.12);
-  border-color: var(--accent);
-}
-[data-drop-area] {
-  background: transparent;
-  border: 0;
-}
-[data-drop-zone] {
-  opacity: 0.2;
-  transition: opacity 0.1s ease;
-}
-[data-drop-zone][data-drop-active] {
-  opacity: 1;
-}
-[data-drop-zone="top"][data-drop-active]::after,
-[data-drop-zone="bottom"][data-drop-active]::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 16px;
-  background: var(--accent);
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
-  pointer-events: none;
-}
-[data-drop-zone="top"][data-drop-active]::after {
-  top: 0;
-  margin-top: -8px;
-}
-[data-drop-zone="bottom"][data-drop-active]::after {
-  bottom: 0;
-  margin-bottom: -8px;
-}
-[data-drop-zone="empty"][data-drop-active] {
-  background: var(--accent-soft);
-  outline: 3px solid var(--accent);
-  outline-offset: -3px;
-  border-radius: 8px;
-}
-
-.ov-item-hit {
-  cursor: grab;
-}
-.ov-item {
-  border-radius: 6px;
-  cursor: pointer;
-  transition: box-shadow 0.12s ease;
-}
-.ov-item:hover {
-  box-shadow: inset 0 0 0 2px rgba(79, 70, 229, 0.55);
-}
-.ov-item--selected {
-  box-shadow: inset 0 0 0 2px var(--accent);
-  background: rgba(79, 70, 229, 0.07);
-}
-
-.ov-delete {
-  position: absolute;
-  width: 22px;
-  height: 22px;
+.sd-palette > [data-block-type] .palette__type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 0;
+  color: var(--sd-accent);
+  background: var(--sd-accent-soft);
+  border: 1px solid rgba(129, 140, 248, 0.28);
+  border-radius: 7px;
+  flex: 0 0 auto;
+  text-transform: none;
+  letter-spacing: 0;
   padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--err);
-  color: #fff;
-  font-size: 15px;
-  line-height: 22px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.12s ease;
-  z-index: 2;
-  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
-}
-.ov-group:hover .ov-delete {
-  opacity: 0.95;
-}
-.ov-delete:hover {
-  opacity: 1;
 }
 
-/* ── Sidebar rail ───────────────────────────────────────────── */
-.admin-sidebar {
-  position: sticky;
-  top: var(--topbar-h);
-  height: calc(100vh - var(--topbar-h));
-  overflow-y: auto;
-  border-left: 1px solid var(--rail-border);
-  background: var(--rail);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  color: var(--rail-fg);
-}
-.admin-sidebar::-webkit-scrollbar {
-  width: 10px;
-}
-.admin-sidebar::-webkit-scrollbar-thumb {
-  background: var(--rail-border);
-  border-radius: 999px;
-  border: 3px solid var(--rail);
+.sd-palette > [data-block-type="text"] .palette__type::before {
+  content: "T";
+  font-size: 14px;
+  font-weight: 800;
+  font-family: Georgia, "Times New Roman", serif;
 }
 
-/* ── Cards (panels) ─────────────────────────────────────────── */
+.sd-palette > [data-block-type="image"] .palette__type::before {
+  content: "◈";
+  font-size: 14px;
+}
+
+.sd-palette > [data-block-type]::after {
+  content: "⋮⋮";
+  margin-left: auto;
+  color: var(--sd-muted);
+  font-size: 12px;
+  letter-spacing: -2px;
+  opacity: 0.6;
+}
+
+/* Read-only palette items: the package theme applies `cursor: grab` to every
+   `.sd-palette > *`; when `editable=false` the demo Palette adds
+   `aria-disabled="true"`, so correct the affordance (drag is already inert). */
+.sd-palette > [aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* ── Demo-hand-rolled sidebar panels ─────────────────────────────
+ * EditPanel / StylePanel / VersionControls and the Content|Styles tab bar are
+ * templated by the DEMO (they emit `.panel*` / `.tabbar*` / `.presence-*`, NOT
+ * the package `sd-*` panel primitives), so the shipped theme does not cover
+ * them — these rules do. They render inside the dark `.sd-sidebar` rail and use
+ * the demo `--rail*` card vocabulary. (Adopting the package EditPanel/FieldEditor
+ * primitives is DEMO-T-0006's modal work; until then these stay demo-side.) */
 .panel {
   background: var(--rail-card);
   border: 1px solid var(--rail-border);
@@ -465,7 +367,6 @@ body {
   padding: 2px 9px;
   text-transform: capitalize;
 }
-
 .panel__empty {
   display: flex;
   flex-direction: column;
@@ -479,7 +380,6 @@ body {
   color: var(--rail-accent);
   opacity: 0.7;
 }
-
 .panel__meta {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -502,7 +402,6 @@ body {
   border-top: 1px solid var(--rail-border);
   opacity: 0.7;
 }
-
 .panel__field {
   display: flex;
   flex-direction: column;
@@ -549,8 +448,8 @@ body {
   background: var(--rail-2);
   cursor: pointer;
 }
-/* Source picker + secondary controls for the image block field. */
 .panel__field .panel__select,
+.panel__field .panel__control,
 .panel__field input[type="file"] {
   width: 100%;
   padding: 9px 11px;
@@ -567,180 +466,14 @@ body {
   padding: 7px 11px;
 }
 .panel__field .panel__select:focus,
+.panel__field .panel__control:focus,
 .panel__field input[type="file"]:focus {
   outline: none;
   border-color: var(--rail-accent);
   box-shadow: 0 0 0 3px var(--rail-accent-soft);
 }
 
-/* ── Block palette (shell-owned DOM, CSS only) ──────────────── */
-.palette {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-.palette__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 12px;
-  border: 1px solid var(--rail-border);
-  border-radius: var(--radius-sm);
-  background: var(--rail-2);
-  cursor: grab;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--rail-fg);
-  user-select: none;
-  transition: border-color 0.12s ease, background 0.12s ease,
-    transform 0.08s ease;
-}
-.palette__item:hover {
-  border-color: var(--rail-accent);
-  background: var(--rail-card-hover);
-}
-.palette__item:active {
-  cursor: grabbing;
-  transform: scale(0.99);
-}
-/* Turn the raw type tag into an icon chip. */
-.palette__type {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  font-size: 0; /* hide the raw type text; icon drawn via ::before */
-  color: var(--rail-accent);
-  background: var(--rail-accent-soft);
-  border: 1px solid rgba(129, 140, 248, 0.28);
-  border-radius: 7px;
-  flex: 0 0 auto;
-  text-transform: none;
-  letter-spacing: 0;
-  padding: 0;
-}
-.palette__item[data-block-type="text"] .palette__type::before {
-  content: "T";
-  font-size: 14px;
-  font-weight: 800;
-  font-family: Georgia, "Times New Roman", serif;
-}
-.palette__item[data-block-type="image"] .palette__type::before {
-  content: "◈";
-  font-size: 14px;
-}
-/* Drag affordance dots on the right. */
-.palette__item::after {
-  content: "⋮⋮";
-  margin-left: auto;
-  color: var(--rail-muted);
-  font-size: 12px;
-  letter-spacing: -2px;
-  opacity: 0.6;
-}
-
-/* ── Buttons ────────────────────────────────────────────────── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex: 1 1 auto;
-  padding: 9px 12px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--rail-fg);
-  background: var(--rail-2);
-  border: 1px solid var(--rail-border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
-}
-.btn:hover:not(:disabled) {
-  border-color: var(--rail-accent);
-  background: var(--rail-card-hover);
-}
-.btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-.btn--block {
-  width: 100%;
-}
-.btn--primary {
-  color: #fff;
-  background: var(--accent);
-  border-color: transparent;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
-}
-.btn--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: transparent;
-}
-.btn--icon {
-  flex: 0 0 auto;
-  width: 34px;
-  padding: 6px 0;
-  font-size: 18px;
-  line-height: 1;
-}
-.btn-group {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-/* ── Versioning ─────────────────────────────────────────────── */
-.version-controls__state {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--rail-muted);
-  font-variant-numeric: tabular-nums;
-}
-.version-controls .btn--primary {
-  margin-top: 12px;
-}
-.vc-pill {
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 999px;
-  padding: 2px 9px;
-  border: 1px solid transparent;
-}
-.vc-pill--draft {
-  color: var(--warn);
-  background: rgba(245, 158, 11, 0.14);
-  border-color: rgba(245, 158, 11, 0.3);
-}
-.vc-pill--live {
-  color: var(--rail-accent);
-  background: var(--rail-accent-soft);
-  border-color: rgba(129, 140, 248, 0.3);
-}
-.vc-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 12px;
-  border-top: 1px solid var(--rail-border);
-}
-.vc-nav__label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--rail-muted);
-}
-.vc-nav__buttons {
-  display: inline-flex;
-  gap: 6px;
-}
-
-/* ── Presence ───────────────────────────────────────────────── */
+/* ── Demo presence status (hand-rolled `.presence-*`) ───────────── */
 .presence-badge {
   display: inline-flex;
   align-items: center;
@@ -759,6 +492,15 @@ body {
   border-radius: 50%;
   background: var(--ok);
   animation: pulse 1.6s infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 .presence-status {
   display: flex;
@@ -786,20 +528,7 @@ body {
   line-height: 1.4;
 }
 
-/* ── Sidebar Content|Styles tabs ────────────────────────────── */
-.sidebar-tabs {
-  padding-bottom: 0;
-}
-.sidebar-tabs__readonly {
-  margin: 0 0 10px;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent-hover);
-  background: var(--accent-soft);
-  border: 1px solid rgba(79, 70, 229, 0.22);
-  border-radius: var(--radius-sm);
-}
+/* ── Demo Content|Styles tab bar (hand-rolled `.tabbar*`) ───────── */
 .tabbar {
   display: inline-flex;
   gap: 2px;
@@ -828,17 +557,4 @@ body {
   color: var(--accent);
   background: #fff;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(79, 70, 229, 0.12);
-}
-
-/* ── Responsive ─────────────────────────────────────────────── */
-@media (max-width: 960px) {
-  .admin-body {
-    grid-template-columns: 1fr;
-  }
-  .admin-sidebar {
-    position: static;
-    height: auto;
-    border-left: 0;
-    border-top: 1px solid var(--rail-border);
-  }
 }
