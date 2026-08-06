@@ -1,10 +1,11 @@
 /**
  * `SidebarPanels` — the admin sidebar's selection-aware contents.
  *
- * Rendered INSIDE the `HostShell` tree (from `App`'s `renderLayout`), so it can
- * read the shell-tracked selection via the dashboard's `useHostSelection()` hook.
- * That selection feeds the field editor, the style panel, and — when presence is
- * on — the `colab` edit-lock publisher.
+ * Rendered INSIDE the `HostShell` tree (registered as a `panels` extension via
+ * {@link useRegisterExtension}, so it lands in the default App Shell's sidebar
+ * region), where it reads the current selection via the dashboard's first-class
+ * `useSelection()` hook. That selection feeds the field editor, the style panel,
+ * and — when presence is on — the `colab` edit-lock publisher.
  *
  * EDIT-LOCK GATE — when presence is enabled, the presence-gated `PresenceSidebar`
  * (which owns the `colab` hooks) computes whether the SELECTED CONTENT ITEM is
@@ -15,7 +16,7 @@
  */
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Palette, useHostSelection } from "@stardust-cms/dashboard";
+import { Palette, useSelection } from "@stardust-cms/dashboard";
 import { useEditLock } from "colab-ui/react";
 import { useEditable } from "./editableContext";
 import { DEMO_BLOCK_TYPES } from "./blockTypes";
@@ -39,7 +40,7 @@ export interface SidebarPanelsProps {
 }
 
 export function SidebarPanels({ selfId }: SidebarPanelsProps): ReactNode {
-  const { selectedTargetId, selectedContentId } = useHostSelection();
+  const { selectedTargetId, selectedContentId } = useSelection();
   const { editable } = useEditable();
   const [tab, setTab] = useState<"content" | "styles">("content");
 
