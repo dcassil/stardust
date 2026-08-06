@@ -295,34 +295,12 @@
   opacity: 0.6;
 }
 
-[data-drop-zone="top"][data-drop-active]::after,
-[data-drop-zone="bottom"][data-drop-active]::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 16px;
-  background: var(--sd-accent);
-  border-radius: var(--sd-radius);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
-  pointer-events: none;
-}
-
-[data-drop-zone="top"][data-drop-active]::after {
-  top: 0;
-  margin-top: -8px;
-}
-
-[data-drop-zone="bottom"][data-drop-active]::after {
-  bottom: 0;
-  margin-bottom: -8px;
-}
-
-[data-drop-zone="empty"][data-drop-active] {
-  background: var(--sd-accent-soft);
-  outline: 3px solid var(--sd-accent);
-  outline-offset: -3px;
-  border-radius: var(--sd-radius);
+/* Read-only palette items: the package theme applies `cursor: grab` to every
+   `.sd-palette > *`; when `editable=false` the demo Palette adds
+   `aria-disabled="true"`, so correct the affordance (drag is already inert). */
+.sd-palette > [aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.5;
 }
 
 /* ── Demo-hand-rolled sidebar panels ─────────────────────────────
@@ -471,6 +449,7 @@
   cursor: pointer;
 }
 .panel__field .panel__select,
+.panel__field .panel__control,
 .panel__field input[type="file"] {
   width: 100%;
   padding: 9px 11px;
@@ -487,6 +466,7 @@
   padding: 7px 11px;
 }
 .panel__field .panel__select:focus,
+.panel__field .panel__control:focus,
 .panel__field input[type="file"]:focus {
   outline: none;
   border-color: var(--rail-accent);
