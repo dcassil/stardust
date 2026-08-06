@@ -8,8 +8,9 @@
  * host-app concern, so this lives in the demo rather than the library.
  *
  * This hook MUST be called inside `HostShell`'s `FrameLinkProvider` — the whole
- * shell (including the sidebar rendered by `renderLayout`) is nested under it,
- * so the {@link StylePanel} that consumes this is in-scope.
+ * shell (including the sidebar, now registered as a `panels` extension into the
+ * default App Shell) is nested under it, so the {@link StylePanel} that consumes
+ * this is in-scope.
  */
 
 import { useSend } from "frame-link-react";
