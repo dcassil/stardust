@@ -1,8 +1,9 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-// Dashboard design tokens (admin-*/ov-* base styling). Demo styles.css is
-// imported after so the demo's palette/panel/version-control styling wins.
+// Dashboard design layers: tokens -> theme -> demo overrides, with styles.css
+// imported last so demo-specific styling wins.
 import "@stardust-cms/dashboard/tokens";
+import "@stardust-cms/dashboard/theme.css";
 import "./styles.css";
 
 const rootEl = document.getElementById("root");
