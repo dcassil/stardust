@@ -18,9 +18,9 @@
     "depcruise": "depcruise site admin shared presence-server --config .dependency-cruiser.cjs"
   },
   "dependencies": {
-    "@stardust-cms/dashboard": "^0.2.0",
+    "@stardust-cms/dashboard": "^0.2.1",
     "@stardust-cms/iframe-adapter": "^0.1.7",
-    "@stardust-cms/vce-adapter": "^0.1.0",
+    "@stardust-cms/vce-adapter": "^0.1.1",
     "colab-protocol": "^0.1.5",
     "colab-ui": "^0.1.5",
     "frame-link": "^4.0.1",
